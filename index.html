@@ -1,0 +1,262 @@
+<!doctype html>
+  <html lang="en">
+  <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shift Ledger &amp; GPM — Jotform widget</title>
+<script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Work+Sans:wght@400;500;600&display=swap">
+  <style>
+  /* Single light theme on purpose: this renders inside a Jotform page. */
+  :root{
+    --surface:#FFFFFF; --surface-2:#EFE9E0; --sunken:#F7F3ED;
+    --ink:#122834; --ink-2:#414651; --ink-3:#79716B;
+  --line:#E3DBD0; --line-2:#D3C9BB;
+      --accent:#4A7272; --accent-soft:#E4EBE8;
+      --gold:#B07C23; --gold-soft:#F8EEDC;
+      --red:#96382F; --red-soft:#F4E1DD;
+    }
+*{box-sizing:border-box}
+html,body{margin:0}
+  body{background:var(--surface); color:var(--ink-2);
+  font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif; font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; padding:2px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+label,.lbl{font-size:10px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3)}
+input,select{font-family:inherit; font-size:14.5px; color:var(--ink); background:var(--surface);
+  border:1px solid var(--line-2); border-radius:4px; padding:8px 10px; width:100%; min-width:0}
+input[type="number"]{font-variant-numeric:tabular-nums}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+select{appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:calc(100% - 16px) calc(50% + 1px), calc(100% - 11px) calc(50% + 1px);
+  background-size:5px 5px,5px 5px; background-repeat:no-repeat; padding-right:30px}
+
+/* readout */
+.readout{display:flex; flex-wrap:wrap; background:var(--surface); border:1px solid var(--line);
+  border-top:3px solid var(--accent); border-radius:4px; overflow:hidden; margin-bottom:14px}
+.hero{flex:1 1 250px; padding:16px 18px; background:var(--accent-soft)}
+.hero .lbl{color:var(--accent)}
+.hero-v{font-family:"Playfair Display",Georgia,serif; font-size:42px; font-weight:600; line-height:1;
+  color:var(--ink); margin-top:8px; font-variant-numeric:tabular-nums; letter-spacing:-.02em}
+.hero-v span{font-family:"Work Sans",sans-serif; font-size:.35em; color:var(--ink-3); margin-left:3px}
+.hero-x{font-size:12px; color:var(--ink-2); margin-top:7px}
+.hero-x b{color:var(--ink); font-weight:600}
+.counts{flex:1 1 260px; display:grid; grid-template-columns:1fr 1fr}
+.count{padding:14px 16px; border-left:1px solid var(--line)}
+.count-v{font-size:22px; font-weight:600; color:var(--ink); margin-top:3px; font-variant-numeric:tabular-nums}
+
+/* shift lines */
+.line{border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-bottom:10px; background:var(--surface)}
+.line-id{display:grid; grid-template-columns:1.2fr 1.2fr 130px 34px; gap:9px; padding:11px 12px; align-items:end}
+.line-fields{display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:9px; padding:0 12px 12px}
+.field{display:flex; flex-direction:column; gap:4px; min-width:0}
+.line-out{display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:var(--accent-soft); border-top:1px solid var(--line); padding:9px 12px}
+.line-out .lbl{color:var(--accent)}
+.line-out .v{font-size:18px; font-weight:600; color:var(--accent); font-variant-numeric:tabular-nums}
+.del{background:transparent; border:1px solid var(--line-2); color:var(--ink-3); border-radius:4px;
+  height:36px; width:34px; cursor:pointer; font-size:16px; line-height:1; font-family:inherit}
+.del:hover{border-color:var(--red); color:var(--red); background:var(--red-soft)}
+.add{width:100%; background:transparent; border:1px dashed var(--line-2); color:var(--ink-2);
+  border-radius:4px; padding:10px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit}
+.add:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+
+details{margin-top:12px; border:1px solid var(--line); border-radius:4px; background:var(--sunken)}
+summary{padding:9px 12px; font-size:12.5px; font-weight:600; color:var(--ink-2); cursor:pointer}
+pre{margin:0; padding:0 12px 12px; font-size:11.5px; line-height:1.55; white-space:pre-wrap;
+  color:var(--ink-2); font-family:ui-monospace,Menlo,Consolas,monospace}
+    @media (max-width:620px){
+  .line-id{grid-template-columns:1fr 34px}
+      .line-id .f-cg,.line-id .f-disc{grid-column:1 / 2}
+      .count{border-left:none; border-top:1px solid var(--line)}
+}
+</style>
+  </head>
+  <body>
+
+  <div class="readout">
+    <div class="hero">
+      <div class="lbl">Personal daily GPM %</div>
+      <div class="hero-v num" id="gpm">&mdash;<span>%</span></div>
+      <div class="hero-x">Blended. Straight average: <b class="num" id="avg">&mdash;</b> over <b id="cnt">0</b> shifts.</div>
+    </div>
+    <div class="counts">
+      <div class="count"><div class="lbl">CG/IC/PT shifts</div><div class="count-v num" id="cg">0</div></div>
+      <div class="count"><div class="lbl">LVN/RN shifts</div><div class="count-v num" id="lvn">0</div></div>
+    </div>
+  </div>
+
+  <div id="lines"></div>
+  <button type="button" class="add" id="add">+ Add shift</button>
+
+  <details>
+    <summary>What gets submitted with the form</summary>
+    <pre id="preview">No shifts logged yet.</pre>
+  </details>
+
+  <script>
+  (function(){
+  "use strict";
+var DISC = ["CG","IC","PT","LVN","RN"], CLINICAL = {LVN:1, RN:1};
+var lines = [], outs = {};
+var $ = function(id){ return document.getElementById(id); };
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function n(v){ var x = parseFloat(v); return isFinite(x) ? x : 0; }
+function pct(v){ return v.toFixed(1) + "%"; }
+function money(v){ return "$" + v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+/* GPM: OT premium rides on pay + differential, the regular rate of pay. */
+function compute(L){
+    var pay = n(L.pay) + n(L.diffPay), bill = n(L.bill) + n(L.diffBill);
+  var reg = n(L.reg), ot = n(L.ot);
+  var revenue = reg*bill + ot*bill*n(L.otBill);
+  var labor   = reg*pay  + ot*pay *n(L.otPay);
+  return { revenue:revenue, labor:labor, gp:revenue-labor,
+               gpm: revenue>0 ? (revenue-labor)/revenue*100 : 0,
+               counted: revenue>0 || labor>0 };
+}
+function blank(){ return {id:uid(), client:"", cg:"", disc:"CG", reg:"", ot:"", bill:"", pay:"",
+    otPay:"1.5", otBill:"1.5", diffPay:"", diffBill:""}; }
+
+function node(L){
+    var d = document.createElement("div");
+  d.className = "line";
+  d.innerHTML =
+        '<div class="line-id">'+
+          '<div class="field f-client"><label>Client</label><input type="text" data-k="client" placeholder="Last name, first"></div>'+
+          '<div class="field f-cg"><label>Caregiver staffed</label><input type="text" data-k="cg" placeholder="Name"></div>'+
+          '<div class="field f-disc"><label>Discipline</label><select data-k="disc">'+
+            DISC.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
+          '<button type="button" class="del" aria-label="Remove shift">&times;</button>'+
+        '</div>'+
+        '<div class="line-fields">'+
+          '<div class="field"><label>Reg hrs</label><input type="number" step="0.25" min="0" inputmode="decimal" data-k="reg" placeholder="0"></div>'+
+          '<div class="field"><label>OT hrs</label><input type="number" step="0.25" min="0" inputmode="decimal" data-k="ot" placeholder="0"></div>'+
+          '<div class="field"><label>Bill $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="bill" placeholder="0.00"></div>'+
+          '<div class="field"><label>Pay $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="pay" placeholder="0.00"></div>'+
+          '<div class="field"><label>Diff pay $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="diffPay" placeholder="0.00"></div>'+
+          '<div class="field"><label>Diff bill $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="diffBill" placeholder="0.00"></div>'+
+          '<div class="field"><label>OT pay &times;</label><input type="number" step="0.05" min="1" inputmode="decimal" data-k="otPay"></div>'+
+          '<div class="field"><label>OT bill &times;</label><input type="number" step="0.05" min="1" inputmode="decimal" data-k="otBill"></div>'+
+        '</div>'+
+        '<div class="line-out"><span class="lbl">GPM for this shift</span><span class="v" data-o="gpm">&mdash;</span></div>';
+
+  d.querySelectorAll("[data-k]").forEach(function(inp){
+        var k = inp.getAttribute("data-k");
+    inp.id = "f-"+L.id+"-"+k;
+    inp.value = L[k] == null ? "" : L[k];
+    var h = function(){ L[k] = inp.value; recalc(); };
+    inp.addEventListener("input", h); inp.addEventListener("change", h);
+  });
+  d.querySelector(".del").addEventListener("click", function(){
+        lines = lines.filter(function(x){ return x.id !== L.id; });
+    if(!lines.length) lines.push(blank());
+    render();
+  });
+  outs[L.id] = d.querySelector('[data-o="gpm"]');
+  return d;
+}
+
+function render(){
+    var host = $("lines"); host.textContent = ""; outs = {};
+  lines.forEach(function(L){ host.appendChild(node(L)); });
+  recalc();
+  }
+
+function totals(){
+    var rev=0, lab=0, sum=0, cnt=0, cg=0, clin=0;
+  lines.forEach(function(L){
+        var c = compute(L);
+    rev+=c.revenue; lab+=c.labor;
+    if(c.counted){
+      if(c.revenue>0){ sum+=c.gpm; cnt++; }
+      if(CLINICAL[L.disc]) clin++; else cg++;
+    }
+  });
+  return { rev:rev, lab:lab, gp:rev-lab, blended: rev>0 ? (rev-lab)/rev*100 : null,
+               avg: cnt ? sum/cnt : null, count:cnt, cg:cg, clin:clin };
+}
+
+function submittedValue(t){
+    if(!t.count) return "";
+  var out = [];
+  out.push("Personal daily GPM: " + pct(t.blended) + " blended  ·  " + pct(t.avg) + " straight average");
+  out.push("CG/IC/PT shifts staffed: " + t.cg + "   LVN/RN shifts staffed: " + t.clin);
+  out.push("");
+  out.push("SHIFT(S) STAFFED");
+  lines.forEach(function(L){
+        var c = compute(L);
+    if(!c.counted) return;
+    out.push("• " + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ")  "
+            + n(L.reg) + "h" + (n(L.ot) ? " + " + n(L.ot) + "h OT" : "")
+            + "  bill " + money(n(L.bill)) + (n(L.diffBill) ? " +" + money(n(L.diffBill)) + " diff" : "")
+            + " / pay " + money(n(L.pay)) + (n(L.diffPay) ? " +" + money(n(L.diffPay)) + " diff" : "")
+            + "  →  GPM " + (c.revenue > 0 ? pct(c.gpm) : "—"));
+  });
+  return out.join("\n");
+}
+
+var lastValue = "";
+function recalc(){
+    var t = totals();
+  lines.forEach(function(L){
+        var c = compute(L), o = outs[L.id];
+    if(o) o.textContent = c.revenue > 0 ? pct(c.gpm) : "—";
+  });
+  $("gpm").innerHTML = (t.blended === null ? "—" : t.blended.toFixed(1)) + "<span>%</span>";
+  $("avg").textContent = t.avg === null ? "—" : pct(t.avg);
+  $("cnt").textContent = String(t.count);
+  $("cg").textContent = String(t.cg);
+  $("lvn").textContent = String(t.clin);
+
+  lastValue = submittedValue(t);
+  $("preview").textContent = lastValue || "No shifts logged yet.";
+  sync();
+}
+
+$("add").addEventListener("click", function(){
+    var L = blank();
+  lines.push(L);
+  $("lines").appendChild(node(L));
+  recalc();
+  var f = document.getElementById("f-"+L.id+"-client");
+  if(f) f.focus();
+});
+
+/* ---- Jotform bridge (absent when the file is opened on its own) ---- */
+var JF = window.JFCustomWidget;
+var lastHeight = 0;
+function fit(){
+    if(!JF || !JF.requestFrameResize) return;
+  var h = Math.ceil(document.body.scrollHeight) + 8;
+  if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
+}
+var syncTimer = null;
+function sync(){
+    fit();
+  if(!JF || !JF.sendData) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(function(){ JF.sendData({value: lastValue}); }, 250);
+}
+if(JF){
+  JF.subscribe("ready", function(){
+        lines = [blank()];
+    render();
+    fit();
+  });
+  JF.subscribe("submit", function(){
+        var t = totals();
+    JF.sendSubmit({ valid: t.count > 0, value: lastValue });
+  });
+} else {
+  lines = [blank()];
+  render();
+}
+window.addEventListener("resize", fit);
+})();
+</script>
+  </body>
+  </html>
+  
