@@ -156,18 +156,15 @@ function sync(){
   clearTimeout(syncTimer);
   syncTimer = setTimeout(function(){ JF.sendData({value: lastValue}); }, 250);
 }
+/* Render immediately rather than waiting on the "ready" event, which this
+   generic Iframe Embed field type doesn't reliably fire. */
+lines = [blank()];
+render();
 if(JF){
-  JF.subscribe("ready", function(){
-    lines = [blank()];
-    render();
-    fit();
-  });
+  JF.subscribe("ready", function(){ fit(); });
   JF.subscribe("submit", function(){
     JF.sendSubmit({ valid: true, value: lastValue });
   });
-} else {
-  lines = [blank()];
-  render();
 }
 window.addEventListener("resize", fit);
 })();
