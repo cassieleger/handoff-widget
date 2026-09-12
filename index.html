@@ -50,6 +50,9 @@ select{appearance:none;
 .line-id{display:grid; grid-template-columns:1fr 1.2fr 1.2fr 130px 34px; gap:9px; padding:11px 12px; align-items:end}
 .line-fields{display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:9px; padding:0 12px 12px}
 .field{display:flex; flex-direction:column; gap:4px; min-width:0}
+.field-time{min-width:172px}
+.time-group{display:flex; gap:4px}
+.time-group select,.time-group input{width:auto; flex:1 1 0; min-width:0; padding:8px 4px; text-align:center}
 .line-out{display:flex; align-items:center; justify-content:space-between; gap:10px;
   background:var(--accent-soft); border-top:1px solid var(--line); padding:9px 12px}
 .line-out .lbl{color:var(--accent)}
@@ -88,6 +91,7 @@ select{appearance:none;
   (function(){
   "use strict";
 var DISC = ["CG","IC","LVN","PT","RN"], CLINICAL = {LVN:1, RN:1};
+var HOURS12 = ["1","2","3","4","5","6","7","8","9","10","11","12"];
 var lines = [], outs = {};
 var $ = function(id){ return document.getElementById(id); };
 function uid(){ return Math.random().toString(36).slice(2,9); }
@@ -95,12 +99,18 @@ function n(v){ var x = parseFloat(v); return isFinite(x) ? x : 0; }
 function pct(v){ return v.toFixed(1) + "%"; }
 function money(v){ return "$" + v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtHrs(v){ var r = Math.round(v*100)/100; return (r % 1 === 0 ? r.toFixed(0) : String(r)); }
-/* HTML time inputs give 24h "HH:MM"; an end time at or before start is treated as crossing midnight. */
-function hoursFromTimes(start, end){
-    if(!start || !end) return 0;
-  var sp = start.split(":"), ep = end.split(":");
-  if(sp.length<2 || ep.length<2) return 0;
-  var sMin = (+sp[0])*60 + (+sp[1]), eMin = (+ep[0])*60 + (+ep[1]);
+function pad2(v){ v = parseInt(v,10)||0; return (v<10?"0":"")+v; }
+function fmtTime12(h,m,ap){ if(!h) return ""; return h+":"+pad2(m)+(ap||"AM"); }
+function fmtDate(v){
+    if(!v) return "";
+  var p = v.split("-"); if(p.length!==3) return v;
+  return (+p[1]) + "/" + (+p[2]) + "/" + p[0];
+}
+/* An end time at or before start is treated as crossing midnight. */
+function hoursFromParts(sh, sm, sap, eh, em, eap){
+    if(!sh || !eh) return 0;
+  var sMin = (parseInt(sh,10)%12)*60 + (parseInt(sm,10)||0) + (sap==="PM" ? 12*60 : 0);
+  var eMin = (parseInt(eh,10)%12)*60 + (parseInt(em,10)||0) + (eap==="PM" ? 12*60 : 0);
   var diff = eMin - sMin;
   if(diff <= 0) diff += 24*60;
   return diff/60;
@@ -125,7 +135,7 @@ function splitHours(total, rule){
    premium); only the employee's pay gets the tiered OT/double-time multiplier. */
 function compute(L){
     var pay = n(L.pay), bill = n(L.bill);
-  var totalHrs = hoursFromTimes(L.startTime, L.endTime);
+  var totalHrs = hoursFromParts(L.startHour, L.startMin, L.startAmPm, L.endHour, L.endMin, L.endAmPm);
   var h = splitHours(totalHrs, L.otRule);
   var revenue = totalHrs*bill;
   var labor   = h.reg*pay  + h.ot1*pay *OT1_MULT + h.ot2*pay *OT2_MULT;
@@ -133,14 +143,16 @@ function compute(L){
                gpm: revenue>0 ? (revenue-labor)/revenue*100 : 0,
                counted: revenue>0 || labor>0, hours:h, totalHrs:totalHrs };
 }
-function blank(){ return {id:uid(), shiftTime:"", client:"", cg:"", disc:"CG", startTime:"", endTime:"", otRule:"regular", bill:"", pay:""}; }
+function blank(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:"CG",
+    startHour:"", startMin:"", startAmPm:"AM", endHour:"", endMin:"", endAmPm:"AM", otRule:"regular", bill:"", pay:""}; }
 
 function node(L){
     var d = document.createElement("div");
   d.className = "line";
+  var hourOpts = '<option value="">Hr</option>'+HOURS12.map(function(h){ return '<option>'+h+'</option>'; }).join("");
   d.innerHTML =
         '<div class="line-id">'+
-          '<div class="field f-shift"><label>Shift Date/Time</label><input type="text" data-k="shiftTime" placeholder="e.g. 3/12 7a-3p"></div>'+
+          '<div class="field f-shift"><label>Shift Date</label><input type="date" data-k="shiftDate"></div>'+
           '<div class="field f-client"><label>Client Name</label><input type="text" data-k="client" placeholder="First & Last Name"></div>'+
           '<div class="field f-cg"><label>Employee Staffed</label><input type="text" data-k="cg" placeholder="Name"></div>'+
           '<div class="field f-disc"><label>Employee Type</label><select data-k="disc">'+
@@ -148,8 +160,16 @@ function node(L){
           '<button type="button" class="del" aria-label="Remove shift">&times;</button>'+
         '</div>'+
         '<div class="line-fields">'+
-          '<div class="field"><label>Shift Start</label><input type="time" data-k="startTime"></div>'+
-          '<div class="field"><label>Shift End</label><input type="time" data-k="endTime"></div>'+
+          '<div class="field field-time"><label>Shift Start</label><div class="time-group">'+
+            '<select data-k="startHour">'+hourOpts+'</select>'+
+            '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="startMin" placeholder="Min">'+
+            '<select data-k="startAmPm"><option>AM</option><option>PM</option></select>'+
+          '</div></div>'+
+          '<div class="field field-time"><label>Shift End</label><div class="time-group">'+
+            '<select data-k="endHour">'+hourOpts+'</select>'+
+            '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="endMin" placeholder="Min">'+
+            '<select data-k="endAmPm"><option>AM</option><option>PM</option></select>'+
+          '</div></div>'+
           '<div class="field"><label>OT Rule</label><select data-k="otRule">'+
             '<option value="facility">Facility Overtime Rule</option>'+
             '<option value="regular">Regular Overtime Rule</option>'+
@@ -212,7 +232,13 @@ function submittedValue(t){
     if(c.hours.ot1) otBits.push(fmtHrs(c.hours.ot1) + "h @1.5x");
     if(c.hours.ot2) otBits.push(fmtHrs(c.hours.ot2) + "h @2x");
     var hoursText = fmtHrs(c.totalHrs) + "h" + (otBits.length ? " (" + otBits.join(", ") + " OT)" : "");
-    out.push("• " + (L.shiftTime ? L.shiftTime + " — " : "") + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ")  "
+    var whenParts = [];
+    if(L.shiftDate) whenParts.push(fmtDate(L.shiftDate));
+    var startStr = fmtTime12(L.startHour, L.startMin, L.startAmPm);
+    var endStr = fmtTime12(L.endHour, L.endMin, L.endAmPm);
+    if(startStr || endStr) whenParts.push((startStr||"?") + "-" + (endStr||"?"));
+    var whenText = whenParts.length ? whenParts.join(" ") + " — " : "";
+    out.push("• " + whenText + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ")  "
             + hoursText
             + "  bill " + money(n(L.bill))
             + " / pay " + money(n(L.pay))
