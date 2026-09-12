@@ -231,16 +231,18 @@ function renderShifts(){
 
 function shiftTotals(){
   var rev=0, lab=0, cnt=0, cg=0, clin=0;
+  var byType = {CG:0, IC:0, LVN:0, PT:0, RN:0};
   shiftLines.forEach(function(L){
     var c = computeShift(L);
     rev+=c.revenue; lab+=c.labor;
     if(c.counted){
       if(c.revenue>0) cnt++;
       if(CLINICAL[L.disc]) clin++; else cg++;
+      if(byType[L.disc] != null) byType[L.disc]++;
     }
   });
   return { rev:rev, lab:lab, gp:rev-lab, blended: rev>0 ? (rev-lab)/rev*100 : null,
-           count:cnt, cg:cg, clin:clin };
+           count:cnt, cg:cg, clin:clin, byType:byType };
 }
 
 /* ============ CALL-OFFS / NCNS ============ */
@@ -363,7 +365,22 @@ function recalc(){
   $("nCount").textContent = String(ct.ncns);
 
   lastValue = submittedValue(st, ct);
+  broadcastSummary(st, ct);
   sync();
+}
+
+/* Broadcasts the live numbers via localStorage so the separate top-of-form
+   summary widget (same GitHub Pages origin, different Jotform field/iframe)
+   can display them live via the "storage" event. */
+function broadcastSummary(st, ct){
+  try {
+    localStorage.setItem("lcHandoffSummary", JSON.stringify({
+      gpm: st.blended,
+      cg: st.byType.CG, ic: st.byType.IC, pt: st.byType.PT, lvn: st.byType.LVN, rn: st.byType.RN,
+      callOff: ct.callOff, ncns: ct.ncns,
+      ts: Date.now()
+    }));
+  } catch(e){ /* storage may be unavailable (private mode, blocked) - non-fatal */ }
 }
 
 $("addShift").addEventListener("click", function(){
