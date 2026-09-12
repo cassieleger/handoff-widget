@@ -46,10 +46,12 @@ select{appearance:none;
 .line-id.call-id{grid-template-columns:170px 1.2fr 1.2fr 34px}
 .line-fields{display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:12px 10px; padding:2px 12px 14px}
 .line-fields.call-fields{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
-.line-fields.confirm-fields{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+.line-fields.time-fields{grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); padding-bottom:2px}
+.line-fields.rate-fields{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.line-fields.confirm-fields{grid-template-columns:repeat(2,1fr);
   border-top:1px solid var(--line); margin-top:2px; padding-top:14px}
 .field{display:flex; flex-direction:column; gap:5px; min-width:0}
-.field-time{grid-column:span 2; min-width:0}
+.field-time{min-width:0}
 .time-group{display:flex; gap:4px}
 .time-group select,.time-group input{width:auto; flex:1 1 0; min-width:0; padding:8px 4px; text-align:center}
 .line-out{display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -68,6 +70,7 @@ select{appearance:none;
   .line-id.shift-id .f-shift,.line-id.shift-id .f-cg,.line-id.shift-id .f-disc{grid-column:1 / 2}
   .line-id.call-id{grid-template-columns:1fr 34px}
   .line-id.call-id .f-type,.line-id.call-id .f-client,.line-id.call-id .f-emp{grid-column:1 / 2}
+  .line-fields.confirm-fields{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -163,7 +166,7 @@ function nodeShift(L){
         DISC.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
       '<button type="button" class="del" aria-label="Remove shift">&times;</button>'+
     '</div>'+
-    '<div class="line-fields">'+
+    '<div class="line-fields time-fields">'+
       '<div class="field field-time"><label>Shift Start</label><div class="time-group">'+
         '<select data-k="startHour">'+hourOpts+'</select>'+
         '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="startMin" placeholder="Min">'+
@@ -174,6 +177,8 @@ function nodeShift(L){
         '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="endMin" placeholder="Min">'+
         '<select data-k="endAmPm"><option value="">--</option><option>AM</option><option>PM</option></select>'+
       '</div></div>'+
+    '</div>'+
+    '<div class="line-fields rate-fields">'+
       '<div class="field"><label>OT Rule</label><select data-k="otRule"><option value="">Please Select</option>'+
         '<option value="facility">Facility Overtime Rule</option>'+
         '<option value="regular">Regular Overtime Rule</option>'+
@@ -183,8 +188,8 @@ function nodeShift(L){
       '<div class="field"><label>Base Rate?</label><select data-k="baseRate"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
     '</div>'+
     '<div class="line-fields confirm-fields">'+
-      '<div class="field"><label>POC Updated?</label><select data-k="pocUpdated"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
       '<div class="field"><label>Prep Call Completed (if appl.)</label><select data-k="prepCall"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
+      '<div class="field"><label>POC Updated?</label><select data-k="pocUpdated"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
       '<div class="field"><label>FSFU Task in WS (if appl.)</label><select data-k="fsfuTask"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
       '<div class="field"><label>Nurse Assigned in RN Pad? (if appl.)</label><select data-k="rnPad"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
     '</div>'+
