@@ -34,16 +34,14 @@ select{appearance:none;
   background-size:5px 5px,5px 5px; background-repeat:no-repeat; padding-right:30px}
 
 /* readout */
-.readout{display:flex; flex-wrap:wrap; background:var(--surface); border:1px solid var(--line);
+.readout{display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line);
   border-top:3px solid var(--accent); border-radius:4px; overflow:hidden; margin-bottom:14px}
-.hero{flex:1 1 250px; padding:16px 18px; background:var(--accent-soft)}
+.hero{padding:16px 18px; background:var(--accent-soft)}
 .hero .lbl{color:var(--accent)}
 .hero-v{font-family:"Playfair Display",Georgia,serif; font-size:42px; font-weight:600; line-height:1;
   color:var(--ink); margin-top:8px; font-variant-numeric:tabular-nums; letter-spacing:-.02em}
 .hero-v span{font-family:"Work Sans",sans-serif; font-size:.35em; color:var(--ink-3); margin-left:3px}
-.hero-x{font-size:12px; color:var(--ink-2); margin-top:7px}
-.hero-x b{color:var(--ink); font-weight:600}
-.counts{flex:1 1 260px; display:grid; grid-template-columns:1fr 1fr}
+.counts{display:grid; grid-template-columns:1fr 1fr; border-top:1px solid var(--line)}
 .count{padding:14px 16px; border-left:1px solid var(--line)}
 .count-v{font-size:22px; font-weight:600; color:var(--ink); margin-top:3px; font-variant-numeric:tabular-nums}
 
@@ -80,7 +78,6 @@ pre{margin:0; padding:0 12px 12px; font-size:11.5px; line-height:1.55; white-spa
     <div class="hero">
       <div class="lbl">Personal daily GPM %</div>
       <div class="hero-v num" id="gpm">&mdash;<span>%</span></div>
-      <div class="hero-x">Blended. Straight average: <b class="num" id="avg">&mdash;</b> over <b id="cnt">0</b> shifts.</div>
     </div>
     <div class="counts">
       <div class="count"><div class="lbl">CG/IC/PT shifts</div><div class="count-v num" id="cg">0</div></div>
@@ -182,23 +179,23 @@ function render(){
   }
 
 function totals(){
-    var rev=0, lab=0, sum=0, cnt=0, cg=0, clin=0;
+    var rev=0, lab=0, cnt=0, cg=0, clin=0;
   lines.forEach(function(L){
         var c = compute(L);
     rev+=c.revenue; lab+=c.labor;
     if(c.counted){
-      if(c.revenue>0){ sum+=c.gpm; cnt++; }
+      if(c.revenue>0) cnt++;
       if(CLINICAL[L.disc]) clin++; else cg++;
     }
   });
   return { rev:rev, lab:lab, gp:rev-lab, blended: rev>0 ? (rev-lab)/rev*100 : null,
-               avg: cnt ? sum/cnt : null, count:cnt, cg:cg, clin:clin };
+               count:cnt, cg:cg, clin:clin };
 }
 
 function submittedValue(t){
     if(!t.count) return "";
   var out = [];
-  out.push("Personal daily GPM: " + pct(t.blended) + " blended  ·  " + pct(t.avg) + " straight average");
+  out.push("Personal daily GPM: " + pct(t.blended) + " blended");
   out.push("CG/IC/PT shifts staffed: " + t.cg + "   LVN/RN shifts staffed: " + t.clin);
   out.push("");
   out.push("SHIFT(S) STAFFED");
@@ -226,8 +223,6 @@ function recalc(){
     if(o) o.textContent = c.revenue > 0 ? pct(c.gpm) : "—";
   });
   $("gpm").innerHTML = (t.blended === null ? "—" : t.blended.toFixed(1)) + "<span>%</span>";
-  $("avg").textContent = t.avg === null ? "—" : pct(t.avg);
-  $("cnt").textContent = String(t.count);
   $("cg").textContent = String(t.cg);
   $("lvn").textContent = String(t.clin);
 
