@@ -34,19 +34,7 @@ select{appearance:none;
   background-position:calc(100% - 16px) calc(50% + 1px), calc(100% - 11px) calc(50% + 1px);
   background-size:5px 5px,5px 5px; background-repeat:no-repeat; padding-right:30px}
 
-/* readout: the "final numbers" board, kept separate from the entry sections below */
-.readout{display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line);
-  border-top:3px solid var(--accent); border-radius:4px; overflow:hidden; margin-bottom:16px}
-.hero{padding:16px 18px; background:var(--accent-soft)}
-.hero .lbl{color:var(--accent)}
-.hero-v{font-family:"Playfair Display",Georgia,serif; font-size:42px; font-weight:600; line-height:1;
-  color:var(--ink); margin-top:8px; font-variant-numeric:tabular-nums; letter-spacing:-.02em}
-.hero-v span{font-family:"Work Sans",sans-serif; font-size:.35em; color:var(--ink-3); margin-left:3px}
-.counts{display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid var(--line)}
-.count{padding:14px 16px; border-left:1px solid var(--line)}
-.count-v{font-size:22px; font-weight:600; color:var(--ink); margin-top:3px; font-variant-numeric:tabular-nums}
-
-/* section separation: the "additions" (entry rows) live below, clearly split from the readout */
+/* section separation between the two entry sections below (numbers live in the separate Daily Summary Board widget) */
 .section-label{font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
   color:var(--ink-3); margin:18px 0 8px; padding-top:14px; border-top:1px solid var(--line)}
 .section-label:first-of-type{margin-top:0}
@@ -74,8 +62,6 @@ select{appearance:none;
 .add:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
 
 @media (max-width:620px){
-  .counts{grid-template-columns:repeat(2,1fr)}
-  .counts .count:nth-child(3),.counts .count:nth-child(4){border-top:1px solid var(--line)}
   .line-id.shift-id{grid-template-columns:1fr 34px}
   .line-id.shift-id .f-shift,.line-id.shift-id .f-cg,.line-id.shift-id .f-disc{grid-column:1 / 2}
   .line-id.call-id{grid-template-columns:1fr 34px}
@@ -84,19 +70,6 @@ select{appearance:none;
 </style>
 </head>
 <body>
-
-<div class="readout">
-  <div class="hero">
-    <div class="lbl">Personal daily GPM %</div>
-    <div class="hero-v num" id="gpm">&mdash;<span>%</span></div>
-  </div>
-  <div class="counts">
-    <div class="count"><div class="lbl">CG/IC/PT shifts</div><div class="count-v num" id="cg">0</div></div>
-    <div class="count"><div class="lbl">LVN/RN shifts</div><div class="count-v num" id="lvn">0</div></div>
-    <div class="count"><div class="lbl">Call off &lt;48 hours</div><div class="count-v num" id="cCount">0</div></div>
-    <div class="count"><div class="lbl">NCNS</div><div class="count-v num" id="nCount">0</div></div>
-  </div>
-</div>
 
 <div class="section-label">Shifts Staffed</div>
 <div id="shiftLines"></div>
@@ -355,12 +328,6 @@ function recalc(){
     if(o && o.gpm) o.gpm.textContent = c.revenue > 0 ? pct(c.gpm) : "—";
     if(o && o.hrs) o.hrs.textContent = c.totalHrs > 0 ? fmtHrs(c.totalHrs) + "h" : "—";
   });
-
-  $("gpm").innerHTML = (st.blended === null ? "—" : st.blended.toFixed(1)) + "<span>%</span>";
-  $("cg").textContent = String(st.cg);
-  $("lvn").textContent = String(st.clin);
-  $("cCount").textContent = String(ct.callOff);
-  $("nCount").textContent = String(ct.ncns);
 
   lastValue = submittedValue(st, ct);
   broadcastSummary(st, ct);
