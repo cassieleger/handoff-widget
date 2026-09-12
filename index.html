@@ -3,7 +3,7 @@
   <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Shift Ledger &amp; GPM â€” Jotform widget</title>
+  <title>Shift Ledger &amp; GPM — Jotform widget</title>
 <script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Work+Sans:wght@400;500;600&display=swap">
@@ -182,18 +182,18 @@ function totals(){
 function submittedValue(t){
     if(!t.count) return "";
   var out = [];
-  out.push("Personal daily GPM: " + pct(t.blended) + " blended  Â·  " + pct(t.avg) + " straight average");
+  out.push("Personal daily GPM: " + pct(t.blended) + " blended  ·  " + pct(t.avg) + " straight average");
   out.push("CG/IC/PT shifts staffed: " + t.cg + "   LVN/RN shifts staffed: " + t.clin);
   out.push("");
   out.push("SHIFT(S) STAFFED");
   lines.forEach(function(L){
         var c = compute(L);
     if(!c.counted) return;
-    out.push("â€¢ " + (L.client || "Client") + " â€” " + (L.cg || "Unassigned") + " (" + L.disc + ")  "
+    out.push("• " + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ")  "
             + n(L.reg) + "h" + (n(L.ot) ? " + " + n(L.ot) + "h OT" : "")
             + "  bill " + money(n(L.bill)) + (n(L.diffBill) ? " +" + money(n(L.diffBill)) + " diff" : "")
             + " / pay " + money(n(L.pay)) + (n(L.diffPay) ? " +" + money(n(L.diffPay)) + " diff" : "")
-            + "  â†’  GPM " + (c.revenue > 0 ? pct(c.gpm) : "â€”"));
+            + "  →  GPM " + (c.revenue > 0 ? pct(c.gpm) : "—"));
   });
   return out.join("\n");
 }
@@ -203,10 +203,10 @@ function recalc(){
     var t = totals();
   lines.forEach(function(L){
         var c = compute(L), o = outs[L.id];
-    if(o) o.textContent = c.revenue > 0 ? pct(c.gpm) : "â€”";
+    if(o) o.textContent = c.revenue > 0 ? pct(c.gpm) : "—";
   });
-  $("gpm").innerHTML = (t.blended === null ? "â€”" : t.blended.toFixed(1)) + "<span>%</span>";
-  $("avg").textContent = t.avg === null ? "â€”" : pct(t.avg);
+  $("gpm").innerHTML = (t.blended === null ? "—" : t.blended.toFixed(1)) + "<span>%</span>";
+  $("avg").textContent = t.avg === null ? "—" : pct(t.avg);
   $("cnt").textContent = String(t.count);
   $("cg").textContent = String(t.cg);
   $("lvn").textContent = String(t.clin);
