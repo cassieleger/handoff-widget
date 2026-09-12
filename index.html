@@ -1,54 +1,63 @@
 <!doctype html>
-  <html lang="en">
-  <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Shift Ledger &amp; GPM — Jotform widget</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shift Ledger, GPM &amp; Call-off Log — Jotform widget</title>
 <script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Work+Sans:wght@400;500;600&display=swap">
-  <style>
-  /* Single light theme on purpose: this renders inside a Jotform page. */
-  :root{
-    --surface:#FFFFFF; --surface-2:#EFE9E0; --sunken:#F7F3ED;
-    --ink:#122834; --ink-2:#414651; --ink-3:#79716B;
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Work+Sans:wght@400;500;600&display=swap">
+<style>
+/* Single light theme on purpose: this renders inside a Jotform page. */
+:root{
+  --surface:#FFFFFF; --surface-2:#EFE9E0; --sunken:#F7F3ED;
+  --ink:#122834; --ink-2:#414651; --ink-3:#79716B;
   --line:#E3DBD0; --line-2:#D3C9BB;
-      --accent:#4A7272; --accent-soft:#E4EBE8;
-      --gold:#B07C23; --gold-soft:#F8EEDC;
-      --red:#96382F; --red-soft:#F4E1DD;
-    }
+  --accent:#4A7272; --accent-soft:#E4EBE8;
+  --gold:#B07C23; --gold-soft:#F8EEDC;
+  --red:#96382F; --red-soft:#F4E1DD;
+}
 *{box-sizing:border-box}
 html,body{margin:0}
-  body{background:var(--surface); color:var(--ink-2);
+body{background:var(--surface); color:var(--ink-2);
   font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif; font-size:15px; line-height:1.5;
   -webkit-font-smoothing:antialiased; padding:2px}
 .num{font-variant-numeric:tabular-nums lining-nums}
 label,.lbl{font-size:10px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3)}
-input,select{font-family:inherit; font-size:14.5px; color:var(--ink); background:var(--surface);
+input,select,textarea{font-family:inherit; font-size:14.5px; color:var(--ink); background:var(--surface);
   border:1px solid var(--line-2); border-radius:4px; padding:8px 10px; width:100%; min-width:0}
+textarea{resize:vertical; min-height:38px}
 input[type="number"]{font-variant-numeric:tabular-nums}
-input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
 select{appearance:none;
   background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
   background-position:calc(100% - 16px) calc(50% + 1px), calc(100% - 11px) calc(50% + 1px);
   background-size:5px 5px,5px 5px; background-repeat:no-repeat; padding-right:30px}
 
-/* readout */
+/* readout: the "final numbers" board, kept separate from the entry sections below */
 .readout{display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line);
-  border-top:3px solid var(--accent); border-radius:4px; overflow:hidden; margin-bottom:14px}
+  border-top:3px solid var(--accent); border-radius:4px; overflow:hidden; margin-bottom:16px}
 .hero{padding:16px 18px; background:var(--accent-soft)}
 .hero .lbl{color:var(--accent)}
 .hero-v{font-family:"Playfair Display",Georgia,serif; font-size:42px; font-weight:600; line-height:1;
   color:var(--ink); margin-top:8px; font-variant-numeric:tabular-nums; letter-spacing:-.02em}
 .hero-v span{font-family:"Work Sans",sans-serif; font-size:.35em; color:var(--ink-3); margin-left:3px}
-.counts{display:grid; grid-template-columns:1fr 1fr; border-top:1px solid var(--line)}
+.counts{display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid var(--line)}
 .count{padding:14px 16px; border-left:1px solid var(--line)}
 .count-v{font-size:22px; font-weight:600; color:var(--ink); margin-top:3px; font-variant-numeric:tabular-nums}
 
-/* shift lines */
+/* section separation: the "additions" (entry rows) live below, clearly split from the readout */
+.section-label{font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--ink-3); margin:18px 0 8px; padding-top:14px; border-top:1px solid var(--line)}
+.section-label:first-of-type{margin-top:0}
+
+/* entry lines (shared look for both shift rows and call-off rows) */
 .line{border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-bottom:10px; background:var(--surface)}
-.line-id{display:grid; grid-template-columns:1fr 1.2fr 1.2fr 130px 34px; gap:9px; padding:11px 12px; align-items:end}
+.line-id{display:grid; gap:9px; padding:11px 12px; align-items:end}
+.line-id.shift-id{grid-template-columns:1fr 1.2fr 1.2fr 130px 34px}
+.line-id.call-id{grid-template-columns:170px 1.2fr 1.2fr 34px}
 .line-fields{display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:9px; padding:0 12px 12px}
+.line-fields.call-fields{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
 .field{display:flex; flex-direction:column; gap:4px; min-width:0}
 .field-time{grid-column:span 2; min-width:0}
 .time-group{display:flex; gap:4px}
@@ -64,35 +73,44 @@ select{appearance:none;
   border-radius:4px; padding:10px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit}
 .add:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
 
-    @media (max-width:620px){
-  .line-id{grid-template-columns:1fr 34px}
-      .line-id .f-shift,.line-id .f-cg,.line-id .f-disc{grid-column:1 / 2}
-      .count{border-left:none; border-top:1px solid var(--line)}
+@media (max-width:620px){
+  .counts{grid-template-columns:repeat(2,1fr)}
+  .counts .count:nth-child(3),.counts .count:nth-child(4){border-top:1px solid var(--line)}
+  .line-id.shift-id{grid-template-columns:1fr 34px}
+  .line-id.shift-id .f-shift,.line-id.shift-id .f-cg,.line-id.shift-id .f-disc{grid-column:1 / 2}
+  .line-id.call-id{grid-template-columns:1fr 34px}
+  .line-id.call-id .f-type,.line-id.call-id .f-client,.line-id.call-id .f-emp{grid-column:1 / 2}
 }
 </style>
-  </head>
-  <body>
+</head>
+<body>
 
-  <div class="readout">
-    <div class="hero">
-      <div class="lbl">Personal daily GPM %</div>
-      <div class="hero-v num" id="gpm">&mdash;<span>%</span></div>
-    </div>
-    <div class="counts">
-      <div class="count"><div class="lbl">CG/IC/PT shifts</div><div class="count-v num" id="cg">0</div></div>
-      <div class="count"><div class="lbl">LVN/RN shifts</div><div class="count-v num" id="lvn">0</div></div>
-    </div>
+<div class="readout">
+  <div class="hero">
+    <div class="lbl">Personal daily GPM %</div>
+    <div class="hero-v num" id="gpm">&mdash;<span>%</span></div>
   </div>
+  <div class="counts">
+    <div class="count"><div class="lbl">CG/IC/PT shifts</div><div class="count-v num" id="cg">0</div></div>
+    <div class="count"><div class="lbl">LVN/RN shifts</div><div class="count-v num" id="lvn">0</div></div>
+    <div class="count"><div class="lbl">Call off &lt;48 hours</div><div class="count-v num" id="cCount">0</div></div>
+    <div class="count"><div class="lbl">NCNS</div><div class="count-v num" id="nCount">0</div></div>
+  </div>
+</div>
 
-  <div id="lines"></div>
-  <button type="button" class="add" id="add">+ Add shift</button>
+<div class="section-label">Shifts Staffed</div>
+<div id="shiftLines"></div>
+<button type="button" class="add" id="addShift">+ Add shift</button>
 
-  <script>
-  (function(){
-  "use strict";
-var DISC = ["CG","IC","LVN","PT","RN"], CLINICAL = {LVN:1, RN:1};
-var HOURS12 = ["1","2","3","4","5","6","7","8","9","10","11","12"];
-var lines = [], outs = {};
+<div class="section-label">Call-offs &amp; NCNS</div>
+<div id="callLines"></div>
+<button type="button" class="add" id="addCall">+ Add entry</button>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- shared helpers ---------- */
 var $ = function(id){ return document.getElementById(id); };
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function n(v){ var x = parseFloat(v); return isFinite(x) ? x : 0; }
@@ -102,13 +120,20 @@ function fmtHrs(v){ var r = Math.round(v*100)/100; return (r % 1 === 0 ? r.toFix
 function pad2(v){ v = parseInt(v,10)||0; return (v<10?"0":"")+v; }
 function fmtTime12(h,m,ap){ if(!h) return ""; return h+":"+pad2(m)+(ap||"AM"); }
 function fmtDate(v){
-    if(!v) return "";
+  if(!v) return "";
   var p = v.split("-"); if(p.length!==3) return v;
   return (+p[1]) + "/" + (+p[2]) + "/" + p[0];
 }
+
+/* ============ SHIFTS / GPM ============ */
+var DISC = ["CG","IC","LVN","PT","RN"], CLINICAL = {LVN:1, RN:1};
+var HOURS12 = ["1","2","3","4","5","6","7","8","9","10","11","12"];
+var shiftLines = [], shiftOuts = {};
+var OT1_MULT = 1.5, OT2_MULT = 2;
+
 /* An end time at or before start is treated as crossing midnight. */
 function hoursFromParts(sh, sm, sap, eh, em, eap){
-    if(!sh || !eh) return 0;
+  if(!sh || !eh) return 0;
   var sMin = (parseInt(sh,10)%12)*60 + (parseInt(sm,10)||0) + (sap==="PM" ? 12*60 : 0);
   var eMin = (parseInt(eh,10)%12)*60 + (parseInt(em,10)||0) + (eap==="PM" ? 12*60 : 0);
   var diff = eMin - sMin;
@@ -116,13 +141,12 @@ function hoursFromParts(sh, sm, sap, eh, em, eap){
   return diff/60;
 }
 
-var OT1_MULT = 1.5, OT2_MULT = 2;
 /* Regular Overtime Rule: 0-9h normal, anything past 9h at 1.5x.
    Facility Overtime Rule: 0-8h normal, 8-12h at 1.5x, anything past 12h at 2x. */
 function splitHours(total, rule){
-    total = Math.max(0, total);
+  total = Math.max(0, total);
   if(rule === "facility"){
-        var reg = Math.min(total, 8);
+    var reg = Math.min(total, 8);
     var ot1 = Math.min(Math.max(total - 8, 0), 4);
     var ot2 = Math.max(total - 12, 0);
     return { reg:reg, ot1:ot1, ot2:ot2 };
@@ -131,83 +155,84 @@ function splitHours(total, rule){
   var ot1b = Math.max(total - 9, 0);
   return { reg:reg2, ot1:ot1b, ot2:0 };
 }
+
 /* Bill rate is flat for every hour worked (the client isn't billed an OT
    premium); only the employee's pay gets the tiered OT/double-time multiplier. */
-function compute(L){
-    var pay = n(L.pay), bill = n(L.bill);
+function computeShift(L){
+  var pay = n(L.pay), bill = n(L.bill);
   var totalHrs = hoursFromParts(L.startHour, L.startMin, L.startAmPm, L.endHour, L.endMin, L.endAmPm);
   var h = splitHours(totalHrs, L.otRule);
   var revenue = totalHrs*bill;
   var labor   = h.reg*pay  + h.ot1*pay *OT1_MULT + h.ot2*pay *OT2_MULT;
   return { revenue:revenue, labor:labor, gp:revenue-labor,
-               gpm: revenue>0 ? (revenue-labor)/revenue*100 : 0,
-               counted: revenue>0 || labor>0, hours:h, totalHrs:totalHrs };
+           gpm: revenue>0 ? (revenue-labor)/revenue*100 : 0,
+           counted: revenue>0 || labor>0, hours:h, totalHrs:totalHrs };
 }
-function blank(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:"CG",
-    startHour:"", startMin:"", startAmPm:"AM", endHour:"", endMin:"", endAmPm:"AM", otRule:"regular", bill:"", pay:""}; }
+function blankShift(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:"CG",
+  startHour:"", startMin:"", startAmPm:"AM", endHour:"", endMin:"", endAmPm:"AM", otRule:"regular", bill:"", pay:""}; }
 
-function node(L){
-    var d = document.createElement("div");
+function nodeShift(L){
+  var d = document.createElement("div");
   d.className = "line";
   var hourOpts = '<option value="">Hr</option>'+HOURS12.map(function(h){ return '<option>'+h+'</option>'; }).join("");
   d.innerHTML =
-        '<div class="line-id">'+
-          '<div class="field f-shift"><label>Shift Date</label><input type="date" data-k="shiftDate"></div>'+
-          '<div class="field f-client"><label>Client Name</label><input type="text" data-k="client" placeholder="First & Last Name"></div>'+
-          '<div class="field f-cg"><label>Employee Staffed</label><input type="text" data-k="cg" placeholder="Name"></div>'+
-          '<div class="field f-disc"><label>Employee Type</label><select data-k="disc">'+
-            DISC.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
-          '<button type="button" class="del" aria-label="Remove shift">&times;</button>'+
-        '</div>'+
-        '<div class="line-fields">'+
-          '<div class="field field-time"><label>Shift Start</label><div class="time-group">'+
-            '<select data-k="startHour">'+hourOpts+'</select>'+
-            '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="startMin" placeholder="Min">'+
-            '<select data-k="startAmPm"><option>AM</option><option>PM</option></select>'+
-          '</div></div>'+
-          '<div class="field field-time"><label>Shift End</label><div class="time-group">'+
-            '<select data-k="endHour">'+hourOpts+'</select>'+
-            '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="endMin" placeholder="Min">'+
-            '<select data-k="endAmPm"><option>AM</option><option>PM</option></select>'+
-          '</div></div>'+
-          '<div class="field"><label>OT Rule</label><select data-k="otRule">'+
-            '<option value="facility">Facility Overtime Rule</option>'+
-            '<option value="regular">Regular Overtime Rule</option>'+
-          '</select></div>'+
-          '<div class="field"><label>Bill $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="bill" placeholder="0.00"></div>'+
-          '<div class="field"><label>Pay $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="pay" placeholder="0.00"></div>'+
-        '</div>'+
-        '<div class="line-out">'+
-          '<div><span class="lbl">Hours</span> <span class="v" data-o="hrs">&mdash;</span></div>'+
-          '<div><span class="lbl">GPM for this shift</span> <span class="v" data-o="gpm">&mdash;</span></div>'+
-        '</div>';
+    '<div class="line-id shift-id">'+
+      '<div class="field f-shift"><label>Shift Date</label><input type="date" data-k="shiftDate"></div>'+
+      '<div class="field f-client"><label>Client Name</label><input type="text" data-k="client" placeholder="First & Last Name"></div>'+
+      '<div class="field f-cg"><label>Employee Staffed</label><input type="text" data-k="cg" placeholder="Name"></div>'+
+      '<div class="field f-disc"><label>Employee Type</label><select data-k="disc">'+
+        DISC.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
+      '<button type="button" class="del" aria-label="Remove shift">&times;</button>'+
+    '</div>'+
+    '<div class="line-fields">'+
+      '<div class="field field-time"><label>Shift Start</label><div class="time-group">'+
+        '<select data-k="startHour">'+hourOpts+'</select>'+
+        '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="startMin" placeholder="Min">'+
+        '<select data-k="startAmPm"><option>AM</option><option>PM</option></select>'+
+      '</div></div>'+
+      '<div class="field field-time"><label>Shift End</label><div class="time-group">'+
+        '<select data-k="endHour">'+hourOpts+'</select>'+
+        '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="endMin" placeholder="Min">'+
+        '<select data-k="endAmPm"><option>AM</option><option>PM</option></select>'+
+      '</div></div>'+
+      '<div class="field"><label>OT Rule</label><select data-k="otRule">'+
+        '<option value="facility">Facility Overtime Rule</option>'+
+        '<option value="regular">Regular Overtime Rule</option>'+
+      '</select></div>'+
+      '<div class="field"><label>Bill $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="bill" placeholder="0.00"></div>'+
+      '<div class="field"><label>Pay $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="pay" placeholder="0.00"></div>'+
+    '</div>'+
+    '<div class="line-out">'+
+      '<div><span class="lbl">Hours</span> <span class="v" data-o="hrs">&mdash;</span></div>'+
+      '<div><span class="lbl">GPM for this shift</span> <span class="v" data-o="gpm">&mdash;</span></div>'+
+    '</div>';
 
   d.querySelectorAll("[data-k]").forEach(function(inp){
-        var k = inp.getAttribute("data-k");
+    var k = inp.getAttribute("data-k");
     inp.id = "f-"+L.id+"-"+k;
     inp.value = L[k] == null ? "" : L[k];
     var h = function(){ L[k] = inp.value; recalc(); };
     inp.addEventListener("input", h); inp.addEventListener("change", h);
   });
   d.querySelector(".del").addEventListener("click", function(){
-        lines = lines.filter(function(x){ return x.id !== L.id; });
-    if(!lines.length) lines.push(blank());
-    render();
+    shiftLines = shiftLines.filter(function(x){ return x.id !== L.id; });
+    if(!shiftLines.length) shiftLines.push(blankShift());
+    renderShifts();
   });
-  outs[L.id] = { gpm: d.querySelector('[data-o="gpm"]'), hrs: d.querySelector('[data-o="hrs"]') };
+  shiftOuts[L.id] = { gpm: d.querySelector('[data-o="gpm"]'), hrs: d.querySelector('[data-o="hrs"]') };
   return d;
 }
 
-function render(){
-    var host = $("lines"); host.textContent = ""; outs = {};
-  lines.forEach(function(L){ host.appendChild(node(L)); });
+function renderShifts(){
+  var host = $("shiftLines"); host.textContent = ""; shiftOuts = {};
+  shiftLines.forEach(function(L){ host.appendChild(nodeShift(L)); });
   recalc();
-  }
+}
 
-function totals(){
-    var rev=0, lab=0, cnt=0, cg=0, clin=0;
-  lines.forEach(function(L){
-        var c = compute(L);
+function shiftTotals(){
+  var rev=0, lab=0, cnt=0, cg=0, clin=0;
+  shiftLines.forEach(function(L){
+    var c = computeShift(L);
     rev+=c.revenue; lab+=c.labor;
     if(c.counted){
       if(c.revenue>0) cnt++;
@@ -215,58 +240,145 @@ function totals(){
     }
   });
   return { rev:rev, lab:lab, gp:rev-lab, blended: rev>0 ? (rev-lab)/rev*100 : null,
-               count:cnt, cg:cg, clin:clin };
+           count:cnt, cg:cg, clin:clin };
 }
 
-function submittedValue(t){
-    if(!t.count) return "";
-  var out = [];
-  out.push("Personal daily GPM: " + pct(t.blended) + " blended");
-  out.push("CG/IC/PT shifts staffed: " + t.cg + "   LVN/RN shifts staffed: " + t.clin);
-  out.push("");
-  out.push("SHIFT(S) STAFFED");
-  lines.forEach(function(L){
-        var c = compute(L);
-    if(!c.counted) return;
-    var otBits = [];
-    if(c.hours.ot1) otBits.push(fmtHrs(c.hours.ot1) + "h @1.5x");
-    if(c.hours.ot2) otBits.push(fmtHrs(c.hours.ot2) + "h @2x");
-    var hoursText = fmtHrs(c.totalHrs) + "h" + (otBits.length ? " (" + otBits.join(", ") + " OT)" : "");
-    var whenParts = [];
-    if(L.shiftDate) whenParts.push(fmtDate(L.shiftDate));
-    var startStr = fmtTime12(L.startHour, L.startMin, L.startAmPm);
-    var endStr = fmtTime12(L.endHour, L.endMin, L.endAmPm);
-    if(startStr || endStr) whenParts.push((startStr||"?") + "-" + (endStr||"?"));
-    var whenText = whenParts.length ? whenParts.join(" ") + " — " : "";
-    out.push("• " + whenText + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ")  "
-            + hoursText
-            + "  bill " + money(n(L.bill))
-            + " / pay " + money(n(L.pay))
-            + "  →  GPM " + (c.revenue > 0 ? pct(c.gpm) : "—"));
+/* ============ CALL-OFFS / NCNS ============ */
+var CALL_TYPES = ["Call off <48 hours","NCNS"];
+var callLines = [];
+
+function blankCall(){ return {id:uid(), type:"", client:"", emp:"", callTime:"", shiftTime:"", reason:""}; }
+function callHasContent(L){ return L.client || L.emp || L.callTime || L.shiftTime || L.reason; }
+
+function nodeCall(L){
+  var d = document.createElement("div");
+  d.className = "line";
+  d.innerHTML =
+    '<div class="line-id call-id">'+
+      '<div class="field f-type"><label>Type</label><select data-k="type"><option value="">Please Select</option>'+
+        CALL_TYPES.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
+      '<div class="field f-client"><label>Client Name</label><input type="text" data-k="client" placeholder="First & Last Name"></div>'+
+      '<div class="field f-emp"><label>Employee</label><input type="text" data-k="emp" placeholder="Name"></div>'+
+      '<button type="button" class="del" aria-label="Remove entry">&times;</button>'+
+    '</div>'+
+    '<div class="line-fields call-fields">'+
+      '<div class="field"><label>Date/Time of Call Off</label><input type="text" data-k="callTime" placeholder="e.g. 3/12 6:45am"></div>'+
+      '<div class="field"><label>Shift Date/Time</label><input type="text" data-k="shiftTime" placeholder="e.g. 3/12 7a-3p"></div>'+
+      '<div class="field"><label>Reason</label><textarea data-k="reason" rows="1" placeholder="Reason"></textarea></div>'+
+    '</div>';
+
+  d.querySelectorAll("[data-k]").forEach(function(inp){
+    var k = inp.getAttribute("data-k");
+    inp.id = "f-"+L.id+"-"+k;
+    inp.value = L[k] == null ? "" : L[k];
+    var h = function(){ L[k] = inp.value; recalc(); };
+    inp.addEventListener("input", h); inp.addEventListener("change", h);
   });
+  d.querySelector(".del").addEventListener("click", function(){
+    callLines = callLines.filter(function(x){ return x.id !== L.id; });
+    if(!callLines.length) callLines.push(blankCall());
+    renderCalls();
+  });
+  return d;
+}
+
+function renderCalls(){
+  var host = $("callLines"); host.textContent = "";
+  callLines.forEach(function(L){ host.appendChild(nodeCall(L)); });
+  recalc();
+}
+
+function callTotals(){
+  var c=0, nc=0, counted=0;
+  callLines.forEach(function(L){
+    if(!callHasContent(L)) return;
+    counted++;
+    if(L.type === "NCNS") nc++;
+    else if(L.type === CALL_TYPES[0]) c++;
+  });
+  return { callOff:c, ncns:nc, count:counted };
+}
+
+/* ============ combined submission ============ */
+var lastValue = "";
+function submittedValue(st, ct){
+  var out = [];
+  out.push("Personal daily GPM: " + (st.blended === null ? "—" : pct(st.blended)) + " blended");
+  out.push("CG/IC/PT shifts staffed: " + st.cg + "   LVN/RN shifts staffed: " + st.clin);
+  out.push("Call off <48 hours: " + ct.callOff + "   NCNS: " + ct.ncns);
+
+  if(st.count){
+    out.push("");
+    out.push("SHIFT(S) STAFFED");
+    shiftLines.forEach(function(L){
+      var c = computeShift(L);
+      if(!c.counted) return;
+      var otBits = [];
+      if(c.hours.ot1) otBits.push(fmtHrs(c.hours.ot1) + "h @1.5x");
+      if(c.hours.ot2) otBits.push(fmtHrs(c.hours.ot2) + "h @2x");
+      var hoursText = fmtHrs(c.totalHrs) + "h" + (otBits.length ? " (" + otBits.join(", ") + " OT)" : "");
+      var whenParts = [];
+      if(L.shiftDate) whenParts.push(fmtDate(L.shiftDate));
+      var startStr = fmtTime12(L.startHour, L.startMin, L.startAmPm);
+      var endStr = fmtTime12(L.endHour, L.endMin, L.endAmPm);
+      if(startStr || endStr) whenParts.push((startStr||"?") + "-" + (endStr||"?"));
+      var whenText = whenParts.length ? whenParts.join(" ") + " — " : "";
+      out.push("• " + whenText + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ")  "
+        + hoursText
+        + "  bill " + money(n(L.bill))
+        + " / pay " + money(n(L.pay))
+        + "  →  GPM " + (c.revenue > 0 ? pct(c.gpm) : "—"));
+    });
+  }
+
+  if(ct.count){
+    out.push("");
+    out.push("CALL-OFFS / NCNS");
+    callLines.forEach(function(L){
+      if(!callHasContent(L)) return;
+      out.push("• [" + (L.type || "Unspecified") + "] " + (L.client || "Client") + " — " + (L.emp || "Unassigned")
+        + (L.shiftTime ? "  shift " + L.shiftTime : "")
+        + (L.callTime ? "  called off " + L.callTime : "")
+        + (L.reason ? "  — " + L.reason : ""));
+    });
+  }
+
   return out.join("\n");
 }
 
-var lastValue = "";
 function recalc(){
-    var t = totals();
-  lines.forEach(function(L){
-        var c = compute(L), o = outs[L.id];
+  var st = shiftTotals();
+  var ct = callTotals();
+
+  shiftLines.forEach(function(L){
+    var c = computeShift(L), o = shiftOuts[L.id];
     if(o && o.gpm) o.gpm.textContent = c.revenue > 0 ? pct(c.gpm) : "—";
     if(o && o.hrs) o.hrs.textContent = c.totalHrs > 0 ? fmtHrs(c.totalHrs) + "h" : "—";
   });
-  $("gpm").innerHTML = (t.blended === null ? "—" : t.blended.toFixed(1)) + "<span>%</span>";
-  $("cg").textContent = String(t.cg);
-  $("lvn").textContent = String(t.clin);
 
-  lastValue = submittedValue(t);
+  $("gpm").innerHTML = (st.blended === null ? "—" : st.blended.toFixed(1)) + "<span>%</span>";
+  $("cg").textContent = String(st.cg);
+  $("lvn").textContent = String(st.clin);
+  $("cCount").textContent = String(ct.callOff);
+  $("nCount").textContent = String(ct.ncns);
+
+  lastValue = submittedValue(st, ct);
   sync();
 }
 
-$("add").addEventListener("click", function(){
-    var L = blank();
-  lines.push(L);
-  $("lines").appendChild(node(L));
+$("addShift").addEventListener("click", function(){
+  var L = blankShift();
+  shiftLines.push(L);
+  $("shiftLines").appendChild(nodeShift(L));
+  recalc();
+  var f = document.getElementById("f-"+L.id+"-client");
+  if(f) f.focus();
+});
+
+$("addCall").addEventListener("click", function(){
+  var L = blankCall();
+  callLines.push(L);
+  $("callLines").appendChild(nodeCall(L));
   recalc();
   var f = document.getElementById("f-"+L.id+"-client");
   if(f) f.focus();
@@ -276,34 +388,37 @@ $("add").addEventListener("click", function(){
 var JF = window.JFCustomWidget;
 var lastHeight = 0;
 function fit(){
-    if(!JF || !JF.requestFrameResize) return;
+  if(!JF || !JF.requestFrameResize) return;
   var h = Math.ceil(document.body.scrollHeight) + 8;
   if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
 }
 var syncTimer = null;
 function sync(){
-    fit();
+  fit();
   if(!JF || !JF.sendData) return;
   clearTimeout(syncTimer);
   syncTimer = setTimeout(function(){ JF.sendData({value: lastValue}); }, 250);
 }
 if(JF){
   JF.subscribe("ready", function(){
-        lines = [blank()];
-    render();
+    shiftLines = [blankShift()];
+    callLines = [blankCall()];
+    renderShifts();
+    renderCalls();
     fit();
   });
   JF.subscribe("submit", function(){
-        var t = totals();
-    JF.sendSubmit({ valid: t.count > 0, value: lastValue });
+    var st = shiftTotals(), ct = callTotals();
+    JF.sendSubmit({ valid: (st.count > 0 || ct.count > 0), value: lastValue });
   });
 } else {
-  lines = [blank()];
-  render();
+  shiftLines = [blankShift()];
+  callLines = [blankCall()];
+  renderShifts();
+  renderCalls();
 }
 window.addEventListener("resize", fit);
 })();
 </script>
-  </body>
-  </html>
-  
+</body>
+</html>
