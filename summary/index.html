@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Summary Board — Jotform widget</title>
+<script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Work+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --surface:#FFFFFF; --sunken:#F7F3ED;
+  --ink:#122834; --ink-2:#414651; --ink-3:#79716B;
+  --line:#E3DBD0;
+  --accent:#4A7272; --accent-soft:#E4EBE8;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--surface); color:var(--ink-2);
+  font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif; font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; padding:2px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.lbl{font-size:10px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3)}
+
+.board{display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line);
+  border-top:3px solid var(--accent); border-radius:4px; overflow:hidden}
+.hero{padding:16px 18px; background:var(--accent-soft)}
+.hero .lbl{color:var(--accent)}
+.hero-v{font-family:"Playfair Display",Georgia,serif; font-size:42px; font-weight:600; line-height:1;
+  color:var(--ink); margin-top:8px; font-variant-numeric:tabular-nums; letter-spacing:-.02em}
+.hero-v span{font-family:"Work Sans",sans-serif; font-size:.35em; color:var(--ink-3); margin-left:3px}
+.counts{display:grid; grid-template-columns:repeat(7,1fr); border-top:1px solid var(--line)}
+.count{padding:12px 10px; border-left:1px solid var(--line)}
+.count-v{font-size:20px; font-weight:600; color:var(--ink); margin-top:3px; font-variant-numeric:tabular-nums}
+.stale{font-size:11px; color:var(--ink-3); padding:8px 18px; border-top:1px solid var(--line); background:var(--sunken)}
+
+@media (max-width:700px){
+  .counts{grid-template-columns:repeat(4,1fr)}
+  .counts .count:nth-child(4n+1){border-left:none}
+  .counts .count:nth-child(n+5){border-top:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+
+<div class="board">
+  <div class="hero">
+    <div class="lbl">Personal daily GPM %</div>
+    <div class="hero-v num" id="gpm">&mdash;<span>%</span></div>
+  </div>
+  <div class="counts">
+    <div class="count"><div class="lbl">CG</div><div class="count-v num" id="cg">0</div></div>
+    <div class="count"><div class="lbl">IC</div><div class="count-v num" id="ic">0</div></div>
+    <div class="count"><div class="lbl">PT</div><div class="count-v num" id="pt">0</div></div>
+    <div class="count"><div class="lbl">LVN</div><div class="count-v num" id="lvn">0</div></div>
+    <div class="count"><div class="lbl">RN</div><div class="count-v num" id="rn">0</div></div>
+    <div class="count"><div class="lbl">Call off &lt;48h</div><div class="count-v num" id="callOff">0</div></div>
+    <div class="count"><div class="lbl">NCNS</div><div class="count-v num" id="ncns">0</div></div>
+  </div>
+  <div class="stale" id="hint">Fill in "Shift, GPM &amp; Call-off Log" below — these numbers update live as you go.</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+var KEY = "lcHandoffSummary";
+var lastSeenTs = 0;
+
+function pct(v){ return v.toFixed(1) + "%"; }
+
+function render(){
+  var raw = null;
+  try { raw = localStorage.getItem(KEY); } catch(e){}
+  var data = null;
+  if(raw){ try { data = JSON.parse(raw); } catch(e){ data = null; } }
+
+  if(!data){
+    $("gpm").innerHTML = "&mdash;<span>%</span>";
+    ["cg","ic","pt","lvn","rn","callOff","ncns"].forEach(function(id){ $(id).textContent = "0"; });
+    $("hint").textContent = 'Fill in "Shift, GPM & Call-off Log" below — these numbers update live as you go.';
+    return;
+  }
+
+  $("gpm").innerHTML = (data.gpm == null ? "—" : data.gpm.toFixed(1)) + "<span>%</span>";
+  $("cg").textContent = String(data.cg || 0);
+  $("ic").textContent = String(data.ic || 0);
+  $("pt").textContent = String(data.pt || 0);
+  $("lvn").textContent = String(data.lvn || 0);
+  $("rn").textContent = String(data.rn || 0);
+  $("callOff").textContent = String(data.callOff || 0);
+  $("ncns").textContent = String(data.ncns || 0);
+  $("hint").textContent = "Live from the shift/call-off log below.";
+  lastSeenTs = data.ts || lastSeenTs;
+}
+
+/* "storage" fires in other same-origin windows/iframes when localStorage changes elsewhere. */
+window.addEventListener("storage", function(e){
+  if(e.key === KEY) render();
+});
+/* Poll as a fallback in case the storage event doesn't reach this frame reliably. */
+setInterval(render, 1000);
+
+/* ---- Jotform bridge (absent when the file is opened on its own) ---- */
+var JF = window.JFCustomWidget;
+var lastHeight = 0;
+function fit(){
+  if(!JF || !JF.requestFrameResize) return;
+  var h = Math.ceil(document.body.scrollHeight) + 8;
+  if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
+}
+if(JF){
+  JF.subscribe("ready", function(){ render(); fit(); });
+  JF.subscribe("submit", function(){ JF.sendSubmit({ valid: true, value: "" }); });
+} else {
+  render();
+}
+window.addEventListener("resize", fit);
+})();
+</script>
+</body>
+</html>
