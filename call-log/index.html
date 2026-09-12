@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Call-off / NCNS Log — Jotform widget</title>
+<script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Work+Sans:wght@400;500;600&display=swap">
+<style>
+/* Single light theme on purpose: this renders inside a Jotform page. */
+:root{
+  --surface:#FFFFFF; --surface-2:#EFE9E0; --sunken:#F7F3ED;
+  --ink:#122834; --ink-2:#414651; --ink-3:#79716B;
+  --line:#E3DBD0; --line-2:#D3C9BB;
+  --accent:#4A7272; --accent-soft:#E4EBE8;
+  --gold:#B07C23; --gold-soft:#F8EEDC;
+  --red:#96382F; --red-soft:#F4E1DD;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--surface); color:var(--ink-2);
+  font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif; font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; padding:2px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+label,.lbl{font-size:10px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3)}
+input,select,textarea{font-family:inherit; font-size:14.5px; color:var(--ink); background:var(--surface);
+  border:1px solid var(--line-2); border-radius:4px; padding:8px 10px; width:100%; min-width:0}
+textarea{resize:vertical; min-height:38px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+select{appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:calc(100% - 16px) calc(50% + 1px), calc(100% - 11px) calc(50% + 1px);
+  background-size:5px 5px,5px 5px; background-repeat:no-repeat; padding-right:30px}
+
+.readout{display:flex; background:var(--surface); border:1px solid var(--line);
+  border-top:3px solid var(--accent); border-radius:4px; overflow:hidden; margin-bottom:14px}
+.count{flex:1 1 0; padding:14px 16px}
+.count + .count{border-left:1px solid var(--line)}
+.count .lbl{color:var(--accent)}
+.count-v{font-size:28px; font-weight:600; color:var(--ink); margin-top:4px; font-variant-numeric:tabular-nums}
+
+.line{border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-bottom:10px; background:var(--surface)}
+.line-id{display:grid; grid-template-columns:170px 1.2fr 1.2fr 34px; gap:9px; padding:11px 12px; align-items:end}
+.line-fields{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:9px; padding:0 12px 12px}
+.field{display:flex; flex-direction:column; gap:4px; min-width:0}
+.del{background:transparent; border:1px solid var(--line-2); color:var(--ink-3); border-radius:4px;
+  height:36px; width:34px; cursor:pointer; font-size:16px; line-height:1; font-family:inherit}
+.del:hover{border-color:var(--red); color:var(--red); background:var(--red-soft)}
+.add{width:100%; background:transparent; border:1px dashed var(--line-2); color:var(--ink-2);
+  border-radius:4px; padding:10px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit}
+.add:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+
+@media (max-width:620px){
+  .line-id{grid-template-columns:1fr 34px}
+  .line-id .f-type,.line-id .f-client,.line-id .f-emp{grid-column:1 / 2}
+}
+</style>
+</head>
+<body>
+
+<div class="readout">
+  <div class="count"><div class="lbl">Call off &lt;48 hours</div><div class="count-v num" id="cCount">0</div></div>
+  <div class="count"><div class="lbl">NCNS</div><div class="count-v num" id="nCount">0</div></div>
+</div>
+
+<div id="lines"></div>
+<button type="button" class="add" id="add">+ Add entry</button>
+
+<script>
+(function(){
+"use strict";
+var TYPES = ["Call off <48 hours","NCNS"];
+var lines = [];
+var $ = function(id){ return document.getElementById(id); };
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+function blank(){ return {id:uid(), type:TYPES[0], client:"", emp:"", callTime:"", shiftTime:"", reason:""}; }
+
+function hasContent(L){
+  return L.client || L.emp || L.callTime || L.shiftTime || L.reason;
+}
+
+function node(L){
+  var d = document.createElement("div");
+  d.className = "line";
+  d.innerHTML =
+    '<div class="line-id">'+
+      '<div class="field f-type"><label>Type</label><select data-k="type">'+
+        TYPES.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
+      '<div class="field f-client"><label>Client Name</label><input type="text" data-k="client" placeholder="First name Last name"></div>'+
+      '<div class="field f-emp"><label>Employee</label><input type="text" data-k="emp" placeholder="Name"></div>'+
+      '<button type="button" class="del" aria-label="Remove entry">&times;</button>'+
+    '</div>'+
+    '<div class="line-fields">'+
+      '<div class="field"><label>Date/Time of Call Off</label><input type="text" data-k="callTime" placeholder="e.g. 3/12 6:45am"></div>'+
+      '<div class="field"><label>Shift Date/Time</label><input type="text" data-k="shiftTime" placeholder="e.g. 3/12 7a-3p"></div>'+
+      '<div class="field"><label>Reason</label><textarea data-k="reason" rows="1" placeholder="Reason"></textarea></div>'+
+    '</div>';
+
+  d.querySelectorAll("[data-k]").forEach(function(inp){
+    var k = inp.getAttribute("data-k");
+    inp.id = "f-"+L.id+"-"+k;
+    inp.value = L[k] == null ? "" : L[k];
+    var h = function(){ L[k] = inp.value; recalc(); };
+    inp.addEventListener("input", h); inp.addEventListener("change", h);
+  });
+  d.querySelector(".del").addEventListener("click", function(){
+    lines = lines.filter(function(x){ return x.id !== L.id; });
+    if(!lines.length) lines.push(blank());
+    render();
+  });
+  return d;
+}
+
+function render(){
+  var host = $("lines"); host.textContent = "";
+  lines.forEach(function(L){ host.appendChild(node(L)); });
+  recalc();
+}
+
+function totals(){
+  var c=0, n=0, counted=0;
+  lines.forEach(function(L){
+    if(!hasContent(L)) return;
+    counted++;
+    if(L.type === "NCNS") n++; else c++;
+  });
+  return { callOff:c, ncns:n, count:counted };
+}
+
+function submittedValue(t){
+  if(!t.count) return "";
+  var out = [];
+  out.push("Call off <48 hours: " + t.callOff + "   NCNS: " + t.ncns);
+  out.push("");
+  lines.forEach(function(L){
+    if(!hasContent(L)) return;
+    out.push("• [" + L.type + "] " + (L.client || "Client") + " — " + (L.emp || "Unassigned")
+      + (L.shiftTime ? "  shift " + L.shiftTime : "")
+      + (L.callTime ? "  called off " + L.callTime : "")
+      + (L.reason ? "  — " + L.reason : ""));
+  });
+  return out.join("\n");
+}
+
+var lastValue = "";
+function recalc(){
+  var t = totals();
+  $("cCount").textContent = String(t.callOff);
+  $("nCount").textContent = String(t.ncns);
+  lastValue = submittedValue(t);
+  sync();
+}
+
+$("add").addEventListener("click", function(){
+  var L = blank();
+  lines.push(L);
+  $("lines").appendChild(node(L));
+  recalc();
+  var f = document.getElementById("f-"+L.id+"-client");
+  if(f) f.focus();
+});
+
+/* ---- Jotform bridge (absent when the file is opened on its own) ---- */
+var JF = window.JFCustomWidget;
+var lastHeight = 0;
+function fit(){
+  if(!JF || !JF.requestFrameResize) return;
+  var h = Math.ceil(document.body.scrollHeight) + 8;
+  if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
+}
+var syncTimer = null;
+function sync(){
+  fit();
+  if(!JF || !JF.sendData) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(function(){ JF.sendData({value: lastValue}); }, 250);
+}
+if(JF){
+  JF.subscribe("ready", function(){
+    lines = [blank()];
+    render();
+    fit();
+  });
+  JF.subscribe("submit", function(){
+    JF.sendSubmit({ valid: true, value: lastValue });
+  });
+} else {
+  lines = [blank()];
+  render();
+}
+window.addEventListener("resize", fit);
+})();
+</script>
+</body>
+</html>
