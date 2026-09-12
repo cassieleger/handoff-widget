@@ -104,9 +104,10 @@ var HOURS12 = ["1","2","3","4","5","6","7","8","9","10","11","12"];
 var shiftLines = [], shiftOuts = {};
 var OT1_MULT = 1.5, OT2_MULT = 2;
 
-/* An end time at or before start is treated as crossing midnight. */
+/* An end time at or before start is treated as crossing midnight.
+   Nothing computes until both AM/PM sides are actually chosen (no silent AM default). */
 function hoursFromParts(sh, sm, sap, eh, em, eap){
-  if(!sh || !eh) return 0;
+  if(!sh || !eh || !sap || !eap) return 0;
   var sMin = (parseInt(sh,10)%12)*60 + (parseInt(sm,10)||0) + (sap==="PM" ? 12*60 : 0);
   var eMin = (parseInt(eh,10)%12)*60 + (parseInt(em,10)||0) + (eap==="PM" ? 12*60 : 0);
   var diff = eMin - sMin;
@@ -115,9 +116,11 @@ function hoursFromParts(sh, sm, sap, eh, em, eap){
 }
 
 /* Regular Overtime Rule: 0-9h normal, anything past 9h at 1.5x.
-   Facility Overtime Rule: 0-8h normal, 8-12h at 1.5x, anything past 12h at 2x. */
+   Facility Overtime Rule: 0-8h normal, 8-12h at 1.5x, anything past 12h at 2x.
+   No rule chosen yet: nothing computes (avoids silently assuming Regular). */
 function splitHours(total, rule){
   total = Math.max(0, total);
+  if(!rule) return { reg:0, ot1:0, ot2:0 };
   if(rule === "facility"){
     var reg = Math.min(total, 8);
     var ot1 = Math.min(Math.max(total - 8, 0), 4);
@@ -141,8 +144,8 @@ function computeShift(L){
            gpm: revenue>0 ? (revenue-labor)/revenue*100 : 0,
            counted: revenue>0 || labor>0, hours:h, totalHrs:totalHrs };
 }
-function blankShift(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:"CG",
-  startHour:"", startMin:"", startAmPm:"AM", endHour:"", endMin:"", endAmPm:"AM", otRule:"regular", bill:"", pay:"",
+function blankShift(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:"",
+  startHour:"", startMin:"", startAmPm:"", endHour:"", endMin:"", endAmPm:"", otRule:"", bill:"", pay:"",
   baseRate:"", pocUpdated:"", prepCall:"", fsfuTask:"", rnPad:""}; }
 
 function nodeShift(L){
@@ -154,7 +157,7 @@ function nodeShift(L){
       '<div class="field f-shift"><label>Shift Date</label><input type="date" data-k="shiftDate"></div>'+
       '<div class="field f-client"><label>Client Name</label><input type="text" data-k="client" placeholder="First & Last Name"></div>'+
       '<div class="field f-cg"><label>Employee Staffed</label><input type="text" data-k="cg" placeholder="First & Last Name"></div>'+
-      '<div class="field f-disc"><label>Employee Type</label><select data-k="disc">'+
+      '<div class="field f-disc"><label>Employee Type</label><select data-k="disc"><option value="">Please Select</option>'+
         DISC.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
       '<button type="button" class="del" aria-label="Remove shift">&times;</button>'+
     '</div>'+
@@ -162,14 +165,14 @@ function nodeShift(L){
       '<div class="field field-time"><label>Shift Start</label><div class="time-group">'+
         '<select data-k="startHour">'+hourOpts+'</select>'+
         '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="startMin" placeholder="Min">'+
-        '<select data-k="startAmPm"><option>AM</option><option>PM</option></select>'+
+        '<select data-k="startAmPm"><option value="">--</option><option>AM</option><option>PM</option></select>'+
       '</div></div>'+
       '<div class="field field-time"><label>Shift End</label><div class="time-group">'+
         '<select data-k="endHour">'+hourOpts+'</select>'+
         '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="endMin" placeholder="Min">'+
-        '<select data-k="endAmPm"><option>AM</option><option>PM</option></select>'+
+        '<select data-k="endAmPm"><option value="">--</option><option>AM</option><option>PM</option></select>'+
       '</div></div>'+
-      '<div class="field"><label>OT Rule</label><select data-k="otRule">'+
+      '<div class="field"><label>OT Rule</label><select data-k="otRule"><option value="">Please Select</option>'+
         '<option value="facility">Facility Overtime Rule</option>'+
         '<option value="regular">Regular Overtime Rule</option>'+
       '</select></div>'+
@@ -217,7 +220,7 @@ function shiftTotals(){
     rev+=c.revenue; lab+=c.labor;
     if(c.counted){
       if(c.revenue>0) cnt++;
-      if(CLINICAL[L.disc]) clin++; else cg++;
+      if(L.disc){ if(CLINICAL[L.disc]) clin++; else cg++; }
     }
   });
   return { rev:rev, lab:lab, gp:rev-lab, blended: rev>0 ? (rev-lab)/rev*100 : null,
