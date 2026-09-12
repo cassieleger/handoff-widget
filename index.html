@@ -415,8 +415,8 @@ if(JF){
     fit();
   });
   JF.subscribe("submit", function(){
-    var st = shiftTotals(), ct = callTotals();
-    JF.sendSubmit({ valid: (st.count > 0 || ct.count > 0), value: lastValue });
+    /* Not required: a day with no shifts and no call-offs/NCNS is valid. */
+    JF.sendSubmit({ valid: true, value: lastValue });
   });
 } else {
   shiftLines = [blankShift()];
