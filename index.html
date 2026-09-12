@@ -122,9 +122,8 @@ function splitHours(total, rule){
   var ot1b = Math.max(total - 9, 0);
   return { reg:reg2, ot1:ot1b, ot2:0 };
 }
-/* GPM: OT premium rides on pay + differential, the regular rate of pay. */
 function compute(L){
-    var pay = n(L.pay) + n(L.diffPay), bill = n(L.bill) + n(L.diffBill);
+    var pay = n(L.pay), bill = n(L.bill);
   var h = splitHours(n(L.hours), L.otRule);
   var revenue = h.reg*bill + h.ot1*bill*OT1_MULT + h.ot2*bill*OT2_MULT;
   var labor   = h.reg*pay  + h.ot1*pay *OT1_MULT + h.ot2*pay *OT2_MULT;
@@ -132,8 +131,7 @@ function compute(L){
                gpm: revenue>0 ? (revenue-labor)/revenue*100 : 0,
                counted: revenue>0 || labor>0, hours:h };
 }
-function blank(){ return {id:uid(), client:"", cg:"", disc:"CG", hours:"", otRule:"regular", bill:"", pay:"",
-    diffPay:"", diffBill:""}; }
+function blank(){ return {id:uid(), client:"", cg:"", disc:"CG", hours:"", otRule:"regular", bill:"", pay:""}; }
 
 function node(L){
     var d = document.createElement("div");
@@ -154,8 +152,6 @@ function node(L){
           '</select></div>'+
           '<div class="field"><label>Bill $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="bill" placeholder="0.00"></div>'+
           '<div class="field"><label>Pay $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="pay" placeholder="0.00"></div>'+
-          '<div class="field"><label>Diff pay $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="diffPay" placeholder="0.00"></div>'+
-          '<div class="field"><label>Diff bill $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="diffBill" placeholder="0.00"></div>'+
         '</div>'+
         '<div class="line-out"><span class="lbl">GPM for this shift</span><span class="v" data-o="gpm">&mdash;</span></div>';
 
@@ -211,8 +207,8 @@ function submittedValue(t){
     var hoursText = n(L.hours) + "h" + (otBits.length ? " (" + otBits.join(", ") + " OT)" : "");
     out.push("• " + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ")  "
             + hoursText
-            + "  bill " + money(n(L.bill)) + (n(L.diffBill) ? " +" + money(n(L.diffBill)) + " diff" : "")
-            + " / pay " + money(n(L.pay)) + (n(L.diffPay) ? " +" + money(n(L.diffPay)) + " diff" : "")
+            + "  bill " + money(n(L.bill))
+            + " / pay " + money(n(L.pay))
             + "  →  GPM " + (c.revenue > 0 ? pct(c.gpm) : "—"));
   });
   return out.join("\n");
