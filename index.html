@@ -142,7 +142,8 @@ function computeShift(L){
            counted: revenue>0 || labor>0, hours:h, totalHrs:totalHrs };
 }
 function blankShift(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:"CG",
-  startHour:"", startMin:"", startAmPm:"AM", endHour:"", endMin:"", endAmPm:"AM", otRule:"regular", bill:"", pay:""}; }
+  startHour:"", startMin:"", startAmPm:"AM", endHour:"", endMin:"", endAmPm:"AM", otRule:"regular", bill:"", pay:"",
+  baseRate:"", pocUpdated:"", prepCall:"", fsfuTask:"", rnPad:""}; }
 
 function nodeShift(L){
   var d = document.createElement("div");
@@ -174,6 +175,13 @@ function nodeShift(L){
       '</select></div>'+
       '<div class="field"><label>Bill $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="bill" placeholder="0.00"></div>'+
       '<div class="field"><label>Pay $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="pay" placeholder="0.00"></div>'+
+    '</div>'+
+    '<div class="line-fields">'+
+      '<div class="field"><label>Base Rate?</label><select data-k="baseRate"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
+      '<div class="field"><label>POC Updated</label><select data-k="pocUpdated"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
+      '<div class="field"><label>Prep Call Completed (if appl.)</label><select data-k="prepCall"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
+      '<div class="field"><label>FSFU Task in WS (if appl.)</label><select data-k="fsfuTask"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
+      '<div class="field"><label>Nurse Assigned in RN Pad? (if appl.)</label><select data-k="rnPad"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
     '</div>'+
     '<div class="line-out">'+
       '<div><span class="lbl">Hours</span> <span class="v" data-o="hrs">&mdash;</span></div>'+
@@ -296,11 +304,18 @@ function submittedValue(st, ct){
       var endStr = fmtTime12(L.endHour, L.endMin, L.endAmPm);
       if(startStr || endStr) whenParts.push((startStr||"?") + "-" + (endStr||"?"));
       var whenText = whenParts.length ? whenParts.join(" ") + " — " : "";
+      var notes = [];
+      if(L.baseRate) notes.push("Base rate: " + L.baseRate);
+      if(L.pocUpdated) notes.push("POC updated: " + L.pocUpdated);
+      if(L.prepCall) notes.push("Prep call: " + L.prepCall);
+      if(L.fsfuTask) notes.push("FSFU: " + L.fsfuTask);
+      if(L.rnPad) notes.push("RN Pad: " + L.rnPad);
       out.push("• " + whenText + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ")  "
         + hoursText
         + "  bill " + money(n(L.bill))
         + " / pay " + money(n(L.pay))
-        + "  →  GPM " + (c.revenue > 0 ? pct(c.gpm) : "—"));
+        + "  →  GPM " + (c.revenue > 0 ? pct(c.gpm) : "—")
+        + (notes.length ? "  [" + notes.join(", ") + "]" : ""));
     });
   }
 
