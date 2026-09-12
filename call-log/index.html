@@ -75,7 +75,7 @@ var lines = [];
 var $ = function(id){ return document.getElementById(id); };
 function uid(){ return Math.random().toString(36).slice(2,9); }
 
-function blank(){ return {id:uid(), type:TYPES[0], client:"", emp:"", callTime:"", shiftTime:"", reason:""}; }
+function blank(){ return {id:uid(), type:"", client:"", emp:"", callTime:"", shiftTime:"", reason:""}; }
 
 function hasContent(L){
   return L.client || L.emp || L.callTime || L.shiftTime || L.reason;
@@ -86,7 +86,7 @@ function node(L){
   d.className = "line";
   d.innerHTML =
     '<div class="line-id">'+
-      '<div class="field f-type"><label>Type</label><select data-k="type">'+
+      '<div class="field f-type"><label>Type</label><select data-k="type"><option value="">Please Select</option>'+
         TYPES.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
       '<div class="field f-client"><label>Client Name</label><input type="text" data-k="client" placeholder="First name Last name"></div>'+
       '<div class="field f-emp"><label>Employee</label><input type="text" data-k="emp" placeholder="Name"></div>'+
@@ -124,7 +124,8 @@ function totals(){
   lines.forEach(function(L){
     if(!hasContent(L)) return;
     counted++;
-    if(L.type === "NCNS") n++; else c++;
+    if(L.type === "NCNS") n++;
+    else if(L.type === TYPES[0]) c++;
   });
   return { callOff:c, ncns:n, count:counted };
 }
@@ -136,7 +137,7 @@ function submittedValue(t){
   out.push("");
   lines.forEach(function(L){
     if(!hasContent(L)) return;
-    out.push("• [" + L.type + "] " + (L.client || "Client") + " — " + (L.emp || "Unassigned")
+    out.push("• [" + (L.type || "Unspecified") + "] " + (L.client || "Client") + " — " + (L.emp || "Unassigned")
       + (L.shiftTime ? "  shift " + L.shiftTime : "")
       + (L.callTime ? "  called off " + L.callTime : "")
       + (L.reason ? "  — " + L.reason : ""));
