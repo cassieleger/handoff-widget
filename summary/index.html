@@ -29,15 +29,18 @@ body{background:var(--surface); color:var(--ink-2);
 .hero-v{font-family:"Playfair Display",Georgia,serif; font-size:42px; font-weight:600; line-height:1;
   color:var(--ink); margin-top:8px; font-variant-numeric:tabular-nums; letter-spacing:-.02em}
 .hero-v span{font-family:"Work Sans",sans-serif; font-size:.35em; color:var(--ink-3); margin-left:3px}
-.counts{display:grid; grid-template-columns:repeat(7,1fr); border-top:1px solid var(--line)}
-.count{padding:12px 10px; border-left:1px solid var(--line)}
-.count-v{font-size:20px; font-weight:600; color:var(--ink); margin-top:3px; font-variant-numeric:tabular-nums}
+.counts{display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--line)}
+.count{padding:12px 14px; border-left:1px solid var(--line)}
+.count:nth-child(3n+1){border-left:none}
+.count:nth-child(n+4){border-top:1px solid var(--line)}
+.count-v{font-size:22px; font-weight:600; color:var(--ink); margin-top:3px; font-variant-numeric:tabular-nums}
 .stale{font-size:11px; color:var(--ink-3); padding:8px 18px; border-top:1px solid var(--line); background:var(--sunken)}
 
-@media (max-width:700px){
-  .counts{grid-template-columns:repeat(4,1fr)}
-  .counts .count:nth-child(4n+1){border-left:none}
-  .counts .count:nth-child(n+5){border-top:1px solid var(--line)}
+@media (max-width:520px){
+  .counts{grid-template-columns:repeat(2,1fr)}
+  .counts .count:nth-child(3n+1){border-left:1px solid var(--line)}
+  .counts .count:nth-child(2n+1){border-left:none}
+  .counts .count:nth-child(n+3){border-top:1px solid var(--line)}
 }
 </style>
 </head>
@@ -49,13 +52,12 @@ body{background:var(--surface); color:var(--ink-2);
     <div class="hero-v num" id="gpm">&mdash;<span>%</span></div>
   </div>
   <div class="counts">
-    <div class="count"><div class="lbl">CG</div><div class="count-v num" id="cg">0</div></div>
-    <div class="count"><div class="lbl">IC</div><div class="count-v num" id="ic">0</div></div>
-    <div class="count"><div class="lbl">PT</div><div class="count-v num" id="pt">0</div></div>
-    <div class="count"><div class="lbl">LVN</div><div class="count-v num" id="lvn">0</div></div>
-    <div class="count"><div class="lbl">RN</div><div class="count-v num" id="rn">0</div></div>
+    <div class="count"><div class="lbl">CG/IC/PT shifts</div><div class="count-v num" id="cg">0</div></div>
+    <div class="count"><div class="lbl">LVN/RN shifts</div><div class="count-v num" id="clin">0</div></div>
+    <div class="count"><div class="lbl">Total staff</div><div class="count-v num" id="totalStaff">0</div></div>
     <div class="count"><div class="lbl">Call off &lt;48h</div><div class="count-v num" id="callOff">0</div></div>
     <div class="count"><div class="lbl">NCNS</div><div class="count-v num" id="ncns">0</div></div>
+    <div class="count"><div class="lbl">Total call-offs</div><div class="count-v num" id="totalCallOffs">0</div></div>
   </div>
   <div class="stale" id="hint">Fill in "Shift, GPM &amp; Call-off Log" below — these numbers update live as you go.</div>
 </div>
@@ -77,19 +79,18 @@ function render(){
 
   if(!data){
     $("gpm").innerHTML = "&mdash;<span>%</span>";
-    ["cg","ic","pt","lvn","rn","callOff","ncns"].forEach(function(id){ $(id).textContent = "0"; });
+    ["cg","clin","totalStaff","callOff","ncns","totalCallOffs"].forEach(function(id){ $(id).textContent = "0"; });
     $("hint").textContent = 'Fill in "Shift, GPM & Call-off Log" below — these numbers update live as you go.';
     return;
   }
 
   $("gpm").innerHTML = (data.gpm == null ? "—" : data.gpm.toFixed(1)) + "<span>%</span>";
   $("cg").textContent = String(data.cg || 0);
-  $("ic").textContent = String(data.ic || 0);
-  $("pt").textContent = String(data.pt || 0);
-  $("lvn").textContent = String(data.lvn || 0);
-  $("rn").textContent = String(data.rn || 0);
+  $("clin").textContent = String(data.clin || 0);
+  $("totalStaff").textContent = String(data.totalStaff || 0);
   $("callOff").textContent = String(data.callOff || 0);
   $("ncns").textContent = String(data.ncns || 0);
+  $("totalCallOffs").textContent = String(data.totalCallOffs || 0);
   $("hint").textContent = "Live from the shift/call-off log below.";
   lastSeenTs = data.ts || lastSeenTs;
 }
