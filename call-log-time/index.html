@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Call Log — Jotform widget</title>
+<script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Work+Sans:wght@400;500;600&display=swap">
+<style>
+/* Single light theme on purpose: this renders inside a Jotform page. */
+:root{
+  --surface:#FFFFFF; --surface-2:#EFE9E0; --sunken:#F7F3ED;
+  --ink:#122834; --ink-2:#414651; --ink-3:#79716B;
+  --line:#E3DBD0; --line-2:#D3C9BB;
+  --accent:#4A7272; --accent-soft:#E4EBE8;
+  --gold:#B07C23; --gold-soft:#F8EEDC;
+  --red:#96382F; --red-soft:#F4E1DD;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--surface); color:var(--ink-2);
+  font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif; font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; padding:2px}
+label,.lbl{font-size:10px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3)}
+input,select,textarea{font-family:inherit; font-size:14.5px; color:var(--ink); background:var(--surface);
+  border:1px solid var(--line-2); border-radius:4px; padding:8px 10px; width:100%; min-width:0}
+textarea{resize:vertical; min-height:38px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+select{appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:calc(100% - 16px) calc(50% + 1px), calc(100% - 11px) calc(50% + 1px);
+  background-size:5px 5px,5px 5px; background-repeat:no-repeat; padding-right:30px}
+
+.line{border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-bottom:10px; background:var(--surface)}
+.line-id{display:grid; grid-template-columns:220px 1.2fr 1.2fr 34px; gap:9px; padding:11px 12px; align-items:end}
+.time-group{display:flex; gap:4px}
+.time-group select,.time-group input{width:auto; flex:1 1 0; min-width:0; padding:8px 4px; text-align:center}
+.line-fields{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px 10px; padding:2px 12px 14px}
+.field{display:flex; flex-direction:column; gap:5px; min-width:0}
+.del{background:transparent; border:1px solid var(--line-2); color:var(--ink-3); border-radius:4px;
+  height:36px; width:34px; cursor:pointer; font-size:16px; line-height:1; font-family:inherit}
+.del:hover{border-color:var(--red); color:var(--red); background:var(--red-soft)}
+.add{width:100%; background:transparent; border:1px dashed var(--line-2); color:var(--ink-2);
+  border-radius:4px; padding:10px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit}
+.add:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+
+@media (max-width:560px){
+  .line-id{grid-template-columns:1fr 34px}
+  .line-id .f-time,.line-id .f-dir,.line-id .f-who{grid-column:1 / 2}
+}
+</style>
+</head>
+<body>
+
+<div id="lines"></div>
+<button type="button" class="add" id="add">+ Add call</button>
+
+<script>
+(function(){
+"use strict";
+var HOURS12 = ["1","2","3","4","5","6","7","8","9","10","11","12"];
+var DIRECTIONS = ["Inbound","Outbound"];
+var WHO = ["CG","Client","IC","LVN","Other","POC","PT","RN"];
+var lines = [];
+var $ = function(id){ return document.getElementById(id); };
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function pad2(v){ v = parseInt(v,10)||0; return (v<10?"0":"")+v; }
+function fmtTime12(h,m,ap){ if(!h || !ap) return ""; return h+":"+pad2(m)+ap; }
+
+function blank(){ return {id:uid(), hour:"", min:"", ampm:"", dir:"", who:"", name:"", reason:""}; }
+function hasContent(L){ return L.dir || L.who || L.name || L.reason || L.hour; }
+
+function node(L){
+  var d = document.createElement("div");
+  d.className = "line";
+  var hourOpts = '<option value="">Hr</option>'+HOURS12.map(function(h){ return '<option>'+h+'</option>'; }).join("");
+  d.innerHTML =
+    '<div class="line-id">'+
+      '<div class="field f-time"><label>Time (PST)</label><div class="time-group">'+
+        '<select data-k="hour">'+hourOpts+'</select>'+
+        '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="min" placeholder="Min">'+
+        '<select data-k="ampm"><option value="">--</option><option>AM</option><option>PM</option></select>'+
+      '</div></div>'+
+      '<div class="field f-dir"><label>Inbound/Outbound</label><select data-k="dir"><option value="">Please Select</option>'+
+        DIRECTIONS.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
+      '<div class="field f-who"><label>Caller/Callee</label><select data-k="who"><option value="">Please Select</option>'+
+        WHO.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
+      '<button type="button" class="del" aria-label="Remove call">&times;</button>'+
+    '</div>'+
+    '<div class="line-fields">'+
+      '<div class="field"><label>Name</label><input type="text" data-k="name" placeholder="Name"></div>'+
+      '<div class="field"><label>Reason for call</label><textarea data-k="reason" rows="1" placeholder="Reason"></textarea></div>'+
+    '</div>';
+
+  d.querySelectorAll("[data-k]").forEach(function(inp){
+    var k = inp.getAttribute("data-k");
+    inp.id = "f-"+L.id+"-"+k;
+    inp.value = L[k] == null ? "" : L[k];
+    var h = function(){ L[k] = inp.value; recalc(); };
+    inp.addEventListener("input", h); inp.addEventListener("change", h);
+  });
+  d.querySelector(".del").addEventListener("click", function(){
+    lines = lines.filter(function(x){ return x.id !== L.id; });
+    if(!lines.length) lines.push(blank());
+    render();
+  });
+  return d;
+}
+
+function render(){
+  var host = $("lines"); host.textContent = "";
+  lines.forEach(function(L){ host.appendChild(node(L)); });
+  recalc();
+}
+
+function submittedValue(){
+  var out = [];
+  lines.forEach(function(L){
+    if(!hasContent(L)) return;
+    var timeStr = fmtTime12(L.hour, L.min, L.ampm);
+    out.push("• " + (timeStr ? timeStr + " — " : "") + (L.dir || "Call") + (L.who ? " with " + L.who : "")
+      + (L.name ? "  " + L.name : "")
+      + (L.reason ? "  — " + L.reason : ""));
+  });
+  return out.join("\n");
+}
+
+var lastValue = "";
+function recalc(){
+  lastValue = submittedValue();
+  sync();
+}
+
+$("add").addEventListener("click", function(){
+  var L = blank();
+  lines.push(L);
+  $("lines").appendChild(node(L));
+  recalc();
+  var f = document.getElementById("f-"+L.id+"-hour");
+  if(f) f.focus();
+});
+
+/* ---- Jotform bridge (absent when the file is opened on its own) ---- */
+var JF = window.JFCustomWidget;
+var lastHeight = 0;
+function fit(){
+  if(!JF || !JF.requestFrameResize) return;
+  var h = Math.ceil(document.body.scrollHeight) + 8;
+  if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
+}
+var syncTimer = null;
+function sync(){
+  fit();
+  if(!JF || !JF.sendData) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(function(){ JF.sendData({value: lastValue}); }, 250);
+}
+if(JF){
+  JF.subscribe("ready", function(){
+    lines = [blank()];
+    render();
+    fit();
+  });
+  JF.subscribe("submit", function(){
+    JF.sendSubmit({ valid: true, value: lastValue });
+  });
+} else {
+  lines = [blank()];
+  render();
+}
+window.addEventListener("resize", fit);
+})();
+</script>
+</body>
+</html>
