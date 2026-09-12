@@ -107,39 +107,55 @@ function n(v){ var x = parseFloat(v); return isFinite(x) ? x : 0; }
 function pct(v){ return v.toFixed(1) + "%"; }
 function money(v){ return "$" + v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
+var OT1_MULT = 1.5, OT2_MULT = 2;
+/* Regular Overtime Rule: 0-9h normal, anything past 9h at 1.5x.
+   Facility Overtime Rule: 0-8h normal, 8-12h at 1.5x, anything past 12h at 2x. */
+function splitHours(total, rule){
+    total = Math.max(0, total);
+  if(rule === "facility"){
+        var reg = Math.min(total, 8);
+    var ot1 = Math.min(Math.max(total - 8, 0), 4);
+    var ot2 = Math.max(total - 12, 0);
+    return { reg:reg, ot1:ot1, ot2:ot2 };
+  }
+  var reg2 = Math.min(total, 9);
+  var ot1b = Math.max(total - 9, 0);
+  return { reg:reg2, ot1:ot1b, ot2:0 };
+}
 /* GPM: OT premium rides on pay + differential, the regular rate of pay. */
 function compute(L){
     var pay = n(L.pay) + n(L.diffPay), bill = n(L.bill) + n(L.diffBill);
-  var reg = n(L.reg), ot = n(L.ot);
-  var revenue = reg*bill + ot*bill*n(L.otBill);
-  var labor   = reg*pay  + ot*pay *n(L.otPay);
+  var h = splitHours(n(L.hours), L.otRule);
+  var revenue = h.reg*bill + h.ot1*bill*OT1_MULT + h.ot2*bill*OT2_MULT;
+  var labor   = h.reg*pay  + h.ot1*pay *OT1_MULT + h.ot2*pay *OT2_MULT;
   return { revenue:revenue, labor:labor, gp:revenue-labor,
                gpm: revenue>0 ? (revenue-labor)/revenue*100 : 0,
-               counted: revenue>0 || labor>0 };
+               counted: revenue>0 || labor>0, hours:h };
 }
-function blank(){ return {id:uid(), client:"", cg:"", disc:"CG", reg:"", ot:"", bill:"", pay:"",
-    otPay:"1.5", otBill:"1.5", diffPay:"", diffBill:""}; }
+function blank(){ return {id:uid(), client:"", cg:"", disc:"CG", hours:"", otRule:"regular", bill:"", pay:"",
+    diffPay:"", diffBill:""}; }
 
 function node(L){
     var d = document.createElement("div");
   d.className = "line";
   d.innerHTML =
         '<div class="line-id">'+
-          '<div class="field f-client"><label>Client</label><input type="text" data-k="client" placeholder="First name Last name"></div>'+
-          '<div class="field f-cg"><label>Caregiver staffed</label><input type="text" data-k="cg" placeholder="Name"></div>'+
-          '<div class="field f-disc"><label>Discipline</label><select data-k="disc">'+
+          '<div class="field f-client"><label>Client Name</label><input type="text" data-k="client" placeholder="First name Last name"></div>'+
+          '<div class="field f-cg"><label>Employee Staffed</label><input type="text" data-k="cg" placeholder="Name"></div>'+
+          '<div class="field f-disc"><label>Employee Type</label><select data-k="disc">'+
             DISC.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
           '<button type="button" class="del" aria-label="Remove shift">&times;</button>'+
         '</div>'+
         '<div class="line-fields">'+
-          '<div class="field"><label>Reg hrs</label><input type="number" step="0.25" min="0" inputmode="decimal" data-k="reg" placeholder="0"></div>'+
-          '<div class="field"><label>OT hrs</label><input type="number" step="0.25" min="0" inputmode="decimal" data-k="ot" placeholder="0"></div>'+
+          '<div class="field"><label>Total hrs</label><input type="number" step="0.25" min="0" inputmode="decimal" data-k="hours" placeholder="0"></div>'+
+          '<div class="field"><label>OT Rule</label><select data-k="otRule">'+
+            '<option value="regular">Regular Overtime Rule</option>'+
+            '<option value="facility">Facility Overtime Rule</option>'+
+          '</select></div>'+
           '<div class="field"><label>Bill $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="bill" placeholder="0.00"></div>'+
           '<div class="field"><label>Pay $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="pay" placeholder="0.00"></div>'+
           '<div class="field"><label>Diff pay $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="diffPay" placeholder="0.00"></div>'+
           '<div class="field"><label>Diff bill $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="diffBill" placeholder="0.00"></div>'+
-          '<div class="field"><label>OT pay &times;</label><input type="number" step="0.05" min="1" inputmode="decimal" data-k="otPay"></div>'+
-          '<div class="field"><label>OT bill &times;</label><input type="number" step="0.05" min="1" inputmode="decimal" data-k="otBill"></div>'+
         '</div>'+
         '<div class="line-out"><span class="lbl">GPM for this shift</span><span class="v" data-o="gpm">&mdash;</span></div>';
 
@@ -189,8 +205,12 @@ function submittedValue(t){
   lines.forEach(function(L){
         var c = compute(L);
     if(!c.counted) return;
+    var otBits = [];
+    if(c.hours.ot1) otBits.push(c.hours.ot1 + "h @1.5x");
+    if(c.hours.ot2) otBits.push(c.hours.ot2 + "h @2x");
+    var hoursText = n(L.hours) + "h" + (otBits.length ? " (" + otBits.join(", ") + " OT)" : "");
     out.push("• " + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ")  "
-            + n(L.reg) + "h" + (n(L.ot) ? " + " + n(L.ot) + "h OT" : "")
+            + hoursText
             + "  bill " + money(n(L.bill)) + (n(L.diffBill) ? " +" + money(n(L.diffBill)) + " diff" : "")
             + " / pay " + money(n(L.pay)) + (n(L.diffPay) ? " +" + money(n(L.diffPay)) + " diff" : "")
             + "  →  GPM " + (c.revenue > 0 ? pct(c.gpm) : "—"));
