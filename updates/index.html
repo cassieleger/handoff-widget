@@ -127,7 +127,7 @@ function submittedValue(){
     var bits = [];
     if(L.regarding) bits.push(L.regarding);
     if(L.name) bits.push(nbsp(L.name));
-    var head = bits.join("  ");
+    var head = bits.join(" — "); /* same dash style as "Client — Employee" in the Shifts/Call-off lines */
     entries.push("• " + (head || "Update") + (L.update ? ": " + L.update : ""));
   });
   if(!entries.length) return "";
