@@ -18,25 +18,27 @@
 "use strict";
 var $status = document.getElementById("status");
 
-/* This field's whole job: relay shiftLines/callLines/call-log entries between
-   the Shifts widget and the Call Log widget (separate iframes, same GitHub
-   Pages origin) via localStorage, and hold the combined JSON as ITS OWN
-   submitted answer so the notification email never has to show it (the email
-   body only prints merge tags it explicitly references, and this field's
-   isn't one of them). Reuses the exact [data:do-not-edit]...[/data] wrapper
-   the Shifts widget's own parsePreviousValue() already expects, so nothing
-   about that parser needs to change. */
+/* This field's whole job: relay shiftLines/callLines/call-log/updates entries
+   between the Shifts, Call Log and Updates widgets (separate iframes, same
+   GitHub Pages origin) via localStorage, and hold the combined JSON as ITS
+   OWN submitted answer so the notification email never has to show it (the
+   email body only prints merge tags it explicitly references, and this
+   field's isn't one of them). Uses the same [data:do-not-edit]...[/data]
+   wrapper the Shifts widget originally used for its own now-removed
+   self-restore, kept only as this field's own storage format. */
 
 var DATA_START = "[data:do-not-edit]", DATA_END = "[/data]";
 var SID = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
 var KEY_SHIFTS = "lcHandoffRowsShifts";
 var KEY_CALLLOG = "lcHandoffRowsCallLog";
+var KEY_UPDATES = "lcHandoffRowsUpdates";
 var KEY_RESTORE = "lcHandoffRestore";
 var KEY_HELLO = "lcHandoffStoreHello";
 
 var latestShifts = null;   /* {v,sid,ts,shiftLines,callLines} from the Shifts widget, only via live event */
 var latestCallLog = null;  /* {v,sid,ts,lines} from the Call Log widget, only via live event */
+var latestUpdates = null;  /* {v,sid,ts,lines} from the Updates widget, only via live event */
 
 function readJSON(raw){
   if(!raw) return null;
@@ -48,7 +50,8 @@ function combinedValue(){
   var payload = {
     shiftLines: (latestShifts && latestShifts.shiftLines) || [],
     callLines: (latestShifts && latestShifts.callLines) || [],
-    callLogLines: (latestCallLog && latestCallLog.lines) || []
+    callLogLines: (latestCallLog && latestCallLog.lines) || [],
+    updatesLines: (latestUpdates && latestUpdates.lines) || []
   };
   return DATA_START + JSON.stringify(payload) + DATA_END;
 }
@@ -65,6 +68,7 @@ window.addEventListener("storage", function(e){
   if(!e || !e.newValue) return;
   if(e.key === KEY_SHIFTS){ var v = readJSON(e.newValue); if(v) latestShifts = v; }
   else if(e.key === KEY_CALLLOG){ var v2 = readJSON(e.newValue); if(v2) latestCallLog = v2; }
+  else if(e.key === KEY_UPDATES){ var v3 = readJSON(e.newValue); if(v3) latestUpdates = v3; }
 });
 
 function sayHello(){
@@ -87,26 +91,20 @@ function renderStatus(prev){
   lines.push("Internal data store — do not edit.");
   lines.push("sid=" + SID);
   lines.push("prev value present: " + (prev ? "yes (" + prev.length + " chars)" : "no"));
-  lines.push("");
-  lines.push("PROBE (diagnostic — safe to ignore, remove once reviewed):");
-  lines.push("document.referrer=" + (document.referrer || "(empty)"));
-  lines.push("location.search=" + (location.search || "(empty)"));
   $status.textContent = lines.join("\n");
 }
 
 if(JF){
   JF.subscribe("ready", function(readyData){
     jfReady = true;
-    var probeKeys = [];
-    try { probeKeys = readyData ? Object.keys(readyData) : []; } catch(e){}
     var prev = (readyData && readyData.value) || (JF.getWidgetSetting && JF.getWidgetSetting("value"));
     renderStatus(prev);
-    $status.textContent += "\nObject.keys(readyData)=" + probeKeys.join(",");
     fitNow();
 
-    /* Restore path: hand the previous submission's data back to the Shifts
-       and Call Log widgets via localStorage, tagged with SID + ts so each
-       receiver can tell a genuinely fresh broadcast from something stale. */
+    /* Restore path: hand the previous submission's data back to the Shifts,
+       Call Log and Updates widgets via localStorage, tagged with SID + ts so
+       each receiver can tell a genuinely fresh broadcast from something
+       stale. */
     var i = (typeof prev === "string") ? prev.indexOf(DATA_START) : -1;
     var j = (typeof prev === "string") ? prev.indexOf(DATA_END) : -1;
     var restoreData = null;
@@ -119,7 +117,8 @@ if(JF){
           v: 1, sid: SID, ts: Date.now(),
           shiftLines: restoreData.shiftLines || [],
           callLines: restoreData.callLines || [],
-          callLogLines: restoreData.callLogLines || []
+          callLogLines: restoreData.callLogLines || [],
+          updatesLines: restoreData.updatesLines || []
         }));
       } else {
         /* Fresh submission - explicitly remove any stale leftover restore
