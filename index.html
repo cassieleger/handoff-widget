@@ -442,10 +442,10 @@ function submittedValue(st, ct){
       /* Row 1: who + when + total hours. Row 2: the money math + GPM.
          Row 3: the confirmation questions. (Client's spec for the email
          text layout — NOT the on-screen widget form, which stays as-is.) */
-      out.push(shiftNum + ". " + (L.client || "Client") + "  —  " + (L.cg || "Unassigned") + " (" + L.disc + ")   " + whenText + "  (" + hoursText + ")");
-      var bonusText = n(L.bonus) > 0 ? "  Bonus " + money(n(L.bonus)) : "";
-      out.push("    OT: " + otText + "  Bill " + money(n(L.bill)) + "/hr  Pay " + money(n(L.pay)) + "/hr" + bonusText + "  GPM " + (c.ready ? pct(c.gpm) : "—"));
-      out.push("    Base Rate: " + (L.baseRate || "—") + "  Diff Hours: " + (L.diffHours || "—") + "  Prep Call: " + (L.prepCall || "—") + "  POC Updated: " + (L.pocUpdated || "—") + "  FSFU: " + (L.fsfuTask || "—") + "  RN Pad: " + (L.rnPad || "—"));
+      out.push(shiftNum + ". " + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ") | " + whenText + " (" + hoursText + ")");
+      var bonusText = n(L.bonus) > 0 ? " | Bonus " + money(n(L.bonus)) : "";
+      out.push("    OT: " + otText + " | Bill " + money(n(L.bill)) + "/hr | Pay " + money(n(L.pay)) + "/hr" + bonusText + " | GPM " + (c.ready ? pct(c.gpm) : "—"));
+      out.push("    Base Rate: " + (L.baseRate || "—") + " | Diff Hours: " + (L.diffHours || "—") + " | Prep Call: " + (L.prepCall || "—") + " | POC Updated: " + (L.pocUpdated || "—") + " | FSFU: " + (L.fsfuTask || "—") + " | RN Pad: " + (L.rnPad || "—"));
       out.push("");
     });
   }
@@ -474,12 +474,12 @@ function submittedValue(st, ct){
       callNum++;
       /* 2 lines per entry, same condensed spirit as the shift rows above:
          row 1 = type/client/employee + shift, row 2 = called-off time + reason. */
-      var shiftPart = L.shiftTime ? "  Shift: " + L.shiftTime : "";
-      out.push(callNum + ". [" + (L.type || "Unspecified") + "]  " + (L.client || "Client") + "  —  " + (L.emp || "Unassigned") + shiftPart);
+      var shiftPart = L.shiftTime ? " | Shift: " + L.shiftTime : "";
+      out.push(callNum + ". [" + (L.type || "Unspecified") + "] " + (L.client || "Client") + " — " + (L.emp || "Unassigned") + shiftPart);
       var line2 = [
         L.callTime ? "Called off: " + L.callTime : "",
         L.reason ? "Reason: " + L.reason : ""
-      ].filter(Boolean).join("  ");
+      ].filter(Boolean).join(" | ");
       if(line2) out.push("    " + line2);
       out.push("");
     });
