@@ -433,9 +433,12 @@ function submittedValue(st, ct){
       var endStr = fmtTime12(L.endHour, L.endMin, L.endAmPm);
       if(startStr || endStr) whenParts.push((startStr||"?") + "-" + (endStr||"?"));
       var whenText = whenParts.length ? whenParts.join("  ") : "—";
-      var hoursText = c.totalHrs > 0 ?
-        (c.useDiff ? "Bill " + fmtHrs(c.billHrs) + "h / Pay " + fmtHrs(c.payHrs) + "h" : fmtHrs(c.totalHrs) + "h")
-        : "—";
+      /* Always just the worked hours here, even when Bill/Pay Different
+         Hours? is Yes - keeps this line's width consistent regardless of
+         that option, instead of needing extra email width just for the
+         occasional longer "Bill Xh / Pay Yh" version. The bill/pay hour
+         breakdown gets its own dedicated line below instead when it applies. */
+      var hoursText = c.totalHrs > 0 ? fmtHrs(c.totalHrs) + "h" : "—";
       var otText = OT_LABELS[L.otRule] || "—";
       /* Numbered so multiple staff/shifts are clearly separate entries, one
          clearly-labeled line per fact instead of one long run-on line. */
@@ -445,7 +448,16 @@ function submittedValue(st, ct){
       out.push(shiftNum + ". " + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ") | " + whenText + " (" + hoursText + ")");
       var bonusText = n(L.bonus) > 0 ? " | Bonus " + money(n(L.bonus)) : "";
       out.push("    OT: " + otText + " | Bill " + money(n(L.bill)) + "/hr | Pay " + money(n(L.pay)) + "/hr" + bonusText + " | GPM " + (c.ready ? pct(c.gpm) : "—"));
-      out.push("    Base Rate: " + (L.baseRate || "—") + " | Diff Pay/Bill Hours: " + (L.diffHours || "—") + " | Prep Call: " + (L.prepCall || "—") + " | POC Updated: " + (L.pocUpdated || "—") + " | FSFU: " + (L.fsfuTask || "—") + " | RN Pad: " + (L.rnPad || "—"));
+      /* Split across 2 shorter lines instead of 1 long one - the single long
+         version was the one thing forcing the whole email wider than every
+         other row needed, leaving a lot of visibly wasted white space next
+         to shorter rows (client flagged this directly). */
+      out.push("    Base Rate: " + (L.baseRate || "—") + " | Diff Pay/Bill Hours: " + (L.diffHours || "—") + " | Prep Call: " + (L.prepCall || "—"));
+      out.push("    POC Updated: " + (L.pocUpdated || "—") + " | FSFU: " + (L.fsfuTask || "—") + " | RN Pad: " + (L.rnPad || "—"));
+      /* Own dedicated line, only present when it applies, instead of ever
+         lengthening line 1 or line 3 - keeps every line the same width
+         whether or not this option is used. */
+      if(c.useDiff) out.push("    Bill Hours: " + fmtHrs(c.billHrs) + "h | Pay Hours: " + fmtHrs(c.payHrs) + "h");
       out.push("");
     });
   }
@@ -454,24 +466,24 @@ function submittedValue(st, ct){
     /* Clear divider so this section reads as distinctly separate from
        Shifts Staffed above, even though both share one email row/field. */
     if(out.length){
-      /* Every char-count guess here (160, 150, 58) before this one was wrong
-         in one way or another - either from a flawed px/char estimate, or
-         (58) from measuring against markup Outlook doesn't actually render
-         the same way (it strips width=/valign=/bgcolor= attributes from
-         external mail, which changes the real column-width layout). The
-         confirm-questions line above ("...FSFU: Yes | RN Pad: Yes") was
-         ALSO found to be wrapping onto its own 2nd line at the email's old
-         860/950px widths given the bigger 15px font - client asked to widen
-         until it stops wrapping instead of chasing the divider to a moving
-         (wrapped) target. Re-verified from scratch against the exact real
-         Outlook-delivered structure (all rows present, real content, real
-         font-size:15px cells - a single isolated row measures unreliably,
-         must use the full table): at the current 1100px-wide email, RN Pad
-         stops wrapping, and 60 chars is the real single-line divider max
-         that reaches its end. Re-measure again (same full-table, real-
-         content technique) if the email's width, font-size, or this line's
-         content ever changes materially. */
-      out.push("═".repeat(60));
+      /* History of this value, in case it needs revisiting again: 160, 150
+         and 58 were all wrong estimates; widening the whole email to 1100px
+         (60 chars) fixed a real wrap on the confirm-questions line but left
+         a lot of visibly wasted white space on every shorter row (client
+         flagged it directly - "pull in the width shown by red"). The real
+         fix was splitting that one long confirm-questions line into two
+         shorter ones (see the two out.push() calls above) and moving the
+         Bill/Pay-different-hours breakdown to its own conditional line
+         instead of ever lengthening line 1 - so no single line needs 1100px
+         any more. Re-measured from scratch against the exact real
+         Outlook-delivered structure (all rows present, real content - a
+         single isolated row measures this unreliably, must use the full
+         table): 860px is the narrowest width where nothing wraps, and 46
+         chars is the real single-line divider max at that width. Re-measure
+         again (same full-table technique, see this session's scratchpad
+         scripts) if the email's width, font-size, or any of this shift
+         text's lines change materially again. */
+      out.push("═".repeat(46));
       out.push("");
     }
     out.push("CALL-OFFS / NCNS");
