@@ -449,12 +449,13 @@ function submittedValue(st, ct){
       var bonusText = n(L.bonus) > 0 ? " | Bonus " + money(n(L.bonus)) : "";
       var gpmText = c.ready ? pct(c.gpm) : "—";
       if(c.useDiff){
-        /* When Bill/Pay Different Hours is Yes, GPM moves down next to the
-           bill/pay hours it's actually derived from (cause and effect read
-           together), and the confirmation questions shift to their own line
-           instead of sharing one with Base Rate/Diff Hours. */
-        out.push("    OT: " + otText + " | Bill " + money(n(L.bill)) + "/hr | Pay " + money(n(L.pay)) + "/hr" + bonusText);
-        out.push("    Base Rate: " + (L.baseRate || "—") + " | Diff Pay/Bill Hours: " + (L.diffHours || "—") + " | Bill Hours: " + fmtHrs(c.billHrs) + "h | Pay Hours: " + fmtHrs(c.payHrs) + "h | GPM " + gpmText);
+        /* When Bill/Pay Different Hours is Yes: Base Rate moves up next to
+           Pay (both are per-shift rate questions, read together), GPM moves
+           down next to the bill/pay hours it's actually derived from (cause
+           and effect read together), and the confirmation questions shift to
+           their own line instead of sharing one with Diff Hours. */
+        out.push("    OT: " + otText + " | Bill " + money(n(L.bill)) + "/hr | Pay " + money(n(L.pay)) + "/hr | Base Rate: " + (L.baseRate || "—") + bonusText);
+        out.push("    Diff Pay/Bill Hours: " + (L.diffHours || "—") + " | Bill Hours: " + fmtHrs(c.billHrs) + "h | Pay Hours: " + fmtHrs(c.payHrs) + "h | GPM " + gpmText);
         out.push("    Prep Call: " + (L.prepCall || "—") + " | POC Updated: " + (L.pocUpdated || "—") + " | FSFU: " + (L.fsfuTask || "—") + " | RN Pad: " + (L.rnPad || "—"));
       } else {
         /* Split across 2 shorter lines instead of 1 long one - the single
