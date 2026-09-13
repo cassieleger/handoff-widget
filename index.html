@@ -454,13 +454,16 @@ function submittedValue(st, ct){
     /* Clear divider so this section reads as distinctly separate from
        Shifts Staffed above, even though both share one email row/field. */
     if(out.length){
-      /* Measured against the actual widened (1060px) email column: "═" renders
-         at ~4.3px/char, and the value column itself measures ~662px, so ~154
-         chars is the real single-line fit. 160 (an earlier guess) went a
-         touch over and wrapped a short stub onto its own 2nd line - client
-         explicitly asked for one clean bar, so this stays a little under
-         instead of a little over. */
-      out.push("═".repeat(150));
+      /* Earlier estimates here (160, then 150) were both wrong - based on a
+         flawed ~4.3px/char guess. Rigorously re-measured via a Playwright
+         getClientRects() line-count check against the real rendered email
+         (not eyeballing): "═" actually renders at ~11.5px/char in this
+         email's font-fallback context, and the value column is ~668px wide
+         at the current 860px-wide email layout - so the real single-line max
+         is 58 chars. Using 54 for a safety margin across different email
+         clients' font substitution. Re-measure again (same technique) if the
+         email's overall width (currently 860px) ever changes. */
+      out.push("═".repeat(54));
       out.push("");
     }
     out.push("CALL-OFFS / NCNS");
