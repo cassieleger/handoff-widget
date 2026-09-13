@@ -61,10 +61,6 @@ select{appearance:none;
 .line-warn{display:flex; align-items:center; gap:7px; background:var(--gold-soft); color:var(--gold);
   font-size:12.5px; font-weight:600; padding:8px 12px; border-top:1px solid var(--line)}
 .line-warn[hidden]{display:none}
-.submit-block{display:flex; align-items:center; gap:8px; background:var(--red-soft); color:var(--red);
-  font-size:13px; font-weight:700; padding:11px 14px; border:1px solid var(--red); border-radius:4px;
-  margin-bottom:14px}
-.submit-block[hidden]{display:none}
 .del{background:transparent; border:1px solid var(--line-2); color:var(--ink-3); border-radius:4px;
   height:36px; width:34px; cursor:pointer; font-size:16px; line-height:1; font-family:inherit}
 .del:hover{border-color:var(--red); color:var(--red); background:var(--red-soft)}
@@ -82,8 +78,6 @@ select{appearance:none;
 </style>
 </head>
 <body>
-
-<div class="submit-block" id="submitBlock" hidden>&#9888; A shift or call-off/NCNS row below is only partly filled in — finish every highlighted field before submitting.</div>
 
 <div class="section-label first">Call-offs &amp; NCNS</div>
 <div id="callLines"></div>
@@ -401,24 +395,9 @@ function recalc(){
     if(o && o.warn) o.warn.hidden = callHasContent(L) || !callStarted(L);
   });
 
-  /* Once every started row is complete again, clear the submit-blocked banner
-     (it only ever gets shown by a blocked submit attempt, never here). */
-  if(!incompleteExists()){
-    var block = $("submitBlock");
-    if(block && !block.hidden) block.hidden = true;
-  }
-
   lastValue = submittedValue(st, ct);
   broadcastSummary(st, ct);
   sync();
-}
-
-/* True if any shift or call-off row has been started but isn't fully filled
-   in yet — used to block submission until it's finished. */
-function incompleteExists(){
-  var shiftBad = shiftLines.some(function(L){ return shiftStarted(L) && !computeShift(L).ready; });
-  var callBad = callLines.some(function(L){ return callStarted(L) && !callHasContent(L); });
-  return shiftBad || callBad;
 }
 
 /* Broadcasts the live numbers via localStorage so the separate top-of-form
@@ -492,18 +471,7 @@ renderCalls();
 if(JF){
   JF.subscribe("ready", function(){ fitNow(); });
   JF.subscribe("submit", function(){
-    /* A day with no shifts and no call-offs/NCNS is still valid — it's only
-       a row that's been started but left half-finished that blocks submit. */
-    var block = $("submitBlock");
-    if(incompleteExists()){
-      if(block){
-        block.hidden = false;
-        fitNow();
-      }
-      JF.sendSubmit({ valid: false, value: lastValue });
-      return;
-    }
-    if(block) block.hidden = true;
+    /* Not required: a day with no shifts and no call-offs/NCNS is valid. */
     JF.sendSubmit({ valid: true, value: lastValue });
   });
 }
