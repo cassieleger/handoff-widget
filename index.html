@@ -1,4 +1,4 @@
-﻿﻿<!doctype html>
+﻿﻿﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -37,7 +37,7 @@ select{appearance:none;
 /* section separation between the two entry sections below (numbers live in the separate Daily Summary Board widget) */
 .section-label{font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
   color:var(--ink-3); margin:36px 0 12px; padding-top:16px; border-top:2px solid var(--accent)}
-.section-label:first-of-type{margin-top:0; padding-top:0; border-top:none}
+.section-label.first{margin-top:0; padding-top:0; border-top:none}
 
 /* entry lines (shared look for both shift rows and call-off rows) */
 .line{border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-bottom:10px; background:var(--surface)}
@@ -85,7 +85,7 @@ select{appearance:none;
 
 <div class="submit-block" id="submitBlock" hidden>&#9888; A shift or call-off/NCNS row below is only partly filled in — finish every highlighted field before submitting.</div>
 
-<div class="section-label">Call-offs &amp; NCNS</div>
+<div class="section-label first">Call-offs &amp; NCNS</div>
 <div id="callLines"></div>
 <button type="button" class="add" id="addCall">+ Add Call-off/NCNS</button>
 
@@ -480,14 +480,17 @@ function sync(){
   clearTimeout(syncTimer);
   syncTimer = setTimeout(function(){ JF.sendData({value: lastValue}); }, 250);
 }
+/* Initialize immediately at script load rather than waiting on the "ready"
+   event — that event can take a moment (or lag independently of the other
+   widget on this form), and waiting on it left the Daily Summary Board
+   showing stale/blank data for a beat before this widget caught up and
+   broadcast its real (zeroed) totals. */
+shiftLines = [blankShift()];
+callLines = [blankCall()];
+renderShifts();
+renderCalls();
 if(JF){
-  JF.subscribe("ready", function(){
-    shiftLines = [blankShift()];
-    callLines = [blankCall()];
-    renderShifts();
-    renderCalls();
-    fitNow();
-  });
+  JF.subscribe("ready", function(){ fitNow(); });
   JF.subscribe("submit", function(){
     /* A day with no shifts and no call-offs/NCNS is still valid — it's only
        a row that's been started but left half-finished that blocks submit. */
@@ -503,16 +506,12 @@ if(JF){
     if(block) block.hidden = true;
     JF.sendSubmit({ valid: true, value: lastValue });
   });
-} else {
-  shiftLines = [blankShift()];
-  callLines = [blankCall()];
-  renderShifts();
-  renderCalls();
 }
 window.addEventListener("resize", fit);
 })();
 </script>
 </body>
 </html>
+
 
 
