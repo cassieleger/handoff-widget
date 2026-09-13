@@ -125,9 +125,18 @@ function fit(){
    widget type), and waiting on it left the hardcoded placeholder text
    visible for a beat before flipping to the real state. */
 render();
+/* CRITICAL: subscribe to "ready" as the very first thing, and nest "submit"
+   INSIDE the ready callback rather than as a sibling subscription — Jotform's
+   own troubleshooting docs warn a sibling "submit" subscription can silently
+   never fire. (2026-09-13: confirmed via a temporary alert() diagnostic that
+   this exact structure was why this field's submitted value always came back
+   empty, even though the visible display worked fine.) */
 if(JF){
-  JF.subscribe("ready", function(){ render(); fit(); });
-  JF.subscribe("submit", function(){ JF.sendSubmit({ valid: true, value: submitText() }); });
+  JF.subscribe("ready", function(){
+    render();
+    fit();
+    JF.subscribe("submit", function(){ JF.sendSubmit({ valid: true, value: submitText() }); });
+  });
 }
 window.addEventListener("resize", fit);
 })();
