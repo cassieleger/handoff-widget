@@ -152,10 +152,13 @@ function splitHours(total, rule){
    and every dropdown, not just the ones that feed the math — is filled in.
    Avoids a misleading GPM (or a row silently entering the staff count) before
    the row is actually finished. */
+/* Minute boxes are the one field allowed to stay blank — an empty minute is
+   assumed to mean :00, not "incomplete" (hoursFromParts already treats it
+   that way via parseInt(...)||0, so this just matches that in the checklist). */
 function shiftAllFilled(L){
   return !!(L.shiftDate && L.client && L.cg && L.disc &&
-    L.startHour && L.startMin !== "" && L.startAmPm &&
-    L.endHour && L.endMin !== "" && L.endAmPm &&
+    L.startHour && L.startAmPm &&
+    L.endHour && L.endAmPm &&
     L.otRule && n(L.bill) > 0 && n(L.pay) > 0 &&
     L.baseRate && L.prepCall && L.pocUpdated && L.fsfuTask && L.rnPad);
 }
@@ -199,12 +202,12 @@ function nodeShift(L){
     '<div class="line-fields time-fields">'+
       '<div class="field field-time"><label>Shift Start</label><div class="time-group">'+
         '<select data-k="startHour">'+hourOpts+'</select>'+
-        '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="startMin" placeholder="Min">'+
+        '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="startMin" placeholder=":00">'+
         '<select data-k="startAmPm"><option value="">--</option><option>AM</option><option>PM</option></select>'+
       '</div></div>'+
       '<div class="field field-time"><label>Shift End</label><div class="time-group">'+
         '<select data-k="endHour">'+hourOpts+'</select>'+
-        '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="endMin" placeholder="Min">'+
+        '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="endMin" placeholder=":00">'+
         '<select data-k="endAmPm"><option value="">--</option><option>AM</option><option>PM</option></select>'+
       '</div></div>'+
     '</div>'+
