@@ -167,7 +167,7 @@ function submittedValue(){
      string here means the whole row renders blank instead of showing a
      "Call Log:" heading with nothing under it. */
   if(!entries.length) return "";
-  return ["CALL LOG", ""].concat(entries).join("\n");
+  return ["Call Log", ""].concat(entries).join("\n");
 }
 
 var lastValue = "";
