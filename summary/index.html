@@ -1,4 +1,4 @@
-﻿<!doctype html>
+﻿﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -109,15 +109,19 @@ function fit(){
   var h = Math.ceil(document.body.scrollHeight) + 8;
   if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
 }
+/* Render immediately at script load rather than waiting on the "ready" event
+   — that event can take a moment (or not fire reliably at all for this
+   widget type), and waiting on it left the hardcoded placeholder text
+   visible for a beat before flipping to the real state. */
+render();
 if(JF){
   JF.subscribe("ready", function(){ render(); fit(); });
   JF.subscribe("submit", function(){ JF.sendSubmit({ valid: true, value: "" }); });
-} else {
-  render();
 }
 window.addEventListener("resize", fit);
 })();
 </script>
 </body>
 </html>
+
 
