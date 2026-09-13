@@ -455,10 +455,12 @@ function submittedValue(st, ct){
        Shifts Staffed above, even though both share one email row/field. */
     if(out.length){
       /* Measured against the actual widened (1060px) email column: "═" renders
-         at ~4.3px/char in a typical client, so ~160 chars reaches edge to edge
-         (a little past is fine - it just wraps onto a 2nd short line, still
-         reading as a full-width bar rather than a short dash). */
-      out.push("═".repeat(160));
+         at ~4.3px/char, and the value column itself measures ~662px, so ~154
+         chars is the real single-line fit. 160 (an earlier guess) went a
+         touch over and wrapped a short stub onto its own 2nd line - client
+         explicitly asked for one clean bar, so this stays a little under
+         instead of a little over. */
+      out.push("═".repeat(150));
       out.push("");
     }
     out.push("CALL-OFFS / NCNS");
