@@ -360,6 +360,7 @@ function submittedValue(st, ct){
 
   if(st.count){
     out.push("SHIFT(S) STAFFED");
+    out.push("");
     shiftLines.forEach(function(L){
       var c = computeShift(L);
       if(!c.counted) return;
@@ -368,38 +369,45 @@ function submittedValue(st, ct){
       var startStr = fmtTime12(L.startHour, L.startMin, L.startAmPm);
       var endStr = fmtTime12(L.endHour, L.endMin, L.endAmPm);
       if(startStr || endStr) whenParts.push((startStr||"?") + "-" + (endStr||"?"));
-      var whenText = whenParts.length ? whenParts.join(" ") + " — " : "";
+      var whenText = whenParts.length ? whenParts.join("  ") : "—";
       var hoursText = c.totalHrs > 0 ? fmtHrs(c.totalHrs) + "h" : "—";
       var otText = OT_LABELS[L.otRule] || "—";
-      /* Just the selected OT Rule, not the hour-by-hour split/multiplier math. */
-      out.push("• " + whenText + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ")  "
-        + hoursText
-        + "  OT Rule: " + otText
-        + "  bill " + money(n(L.bill))
-        + " / pay " + money(n(L.pay))
-        + "  →  GPM " + (c.ready ? pct(c.gpm) : "—"));
+      /* One clearly-labeled line per fact, instead of one long run-on line. */
+      out.push((L.client || "Client") + "  —  " + (L.cg || "Unassigned") + " (" + L.disc + ")");
+      out.push("    " + whenText + "   (" + hoursText + ")");
+      out.push("    OT Rule: " + otText + "     Bill: " + money(n(L.bill)) + "/hr     Pay: " + money(n(L.pay)) + "/hr");
+      out.push("    GPM: " + (c.ready ? pct(c.gpm) : "—"));
+      out.push("");
     });
   }
 
   if(ct.count){
-    if(out.length) out.push("");
     out.push("CALL-OFFS / NCNS");
+    out.push("");
     callLines.forEach(function(L){
       if(!callHasContent(L)) return;
-      out.push("• [" + (L.type || "Unspecified") + "] " + (L.client || "Client") + " — " + (L.emp || "Unassigned")
-        + (L.shiftTime ? "  shift " + L.shiftTime : "")
-        + (L.callTime ? "  called off " + L.callTime : "")
-        + (L.reason ? "  — " + L.reason : ""));
+      out.push("[" + (L.type || "Unspecified") + "]  " + (L.client || "Client") + "  —  " + (L.emp || "Unassigned"));
+      if(L.shiftTime) out.push("    Shift: " + L.shiftTime);
+      if(L.callTime) out.push("    Called off: " + L.callTime);
+      if(L.reason) out.push("    Reason: " + L.reason);
+      out.push("");
     });
   }
 
-  if(!out.length) out.push("No shifts or call-offs entered.");
+  if(!out.length){
+    out.push("No shifts or call-offs entered.");
+  } else if(out[out.length - 1] === ""){
+    out.pop(); /* drop the trailing blank line from the last entry above */
+  }
 
-  /* Hidden technical data block (ignore if reading this in an email or the
-     Review Answers page) — lets this widget restore its own rows when a
-     submission is reopened via "Edit Submission", since Jotform has no
-     built-in way to hand a custom widget its own previous structured data. */
+  /* Technical data block, kept out of the way at the very end with a plain-
+     English label so it reads as intentional rather than random leftover
+     text — lets this widget restore its own rows when a submission is
+     reopened via "Edit Submission", since Jotform has no built-in way to
+     hand a custom widget its own previous structured data. */
   out.push("");
+  out.push("— — — — — — — — — —");
+  out.push('(Internal data below — supports "Edit Submission" restoring this row. Please disregard.)');
   out.push(DATA_START + JSON.stringify({ shiftLines: shiftLines, callLines: callLines }) + DATA_END);
 
   return out.join("\n");
@@ -502,7 +510,7 @@ function sync(){
    never firing, confirmed via a temporary alert() diagnostic — is why every
    submission's answer for this field has always come back empty.) */
 if(JF){
-  JF.subscribe("ready", function(){
+  JF.subscribe("ready", function(readyData){
     jfReady = true;
     fitNow();
     /* Restore previous rows when reopening an existing submission via "Edit
@@ -511,9 +519,14 @@ if(JF){
        the email/Review Answers page in exchange for this working, after an
        earlier HTML-comment-based attempt at the same idea didn't render
        hidden in actual inbox testing. A brand-new entry has no prior value,
-       so this is a no-op then and the blank defaults already rendered stay. */
+       so this is a no-op then and the blank defaults already rendered stay.
+       2026-09-13: fixed a real bug here — the previous value is handed to
+       the ready callback as its own argument, NOT retrievable afterward via
+       getWidgetSetting("value") (that call was always returning something
+       unusable, which is why restore never actually worked despite the data
+       being correctly present in the submission). Try both, argument first. */
     try {
-      var prev = JF.getWidgetSetting("value");
+      var prev = (readyData && readyData.value) || (JF.getWidgetSetting && JF.getWidgetSetting("value"));
       var restored = parsePreviousValue(prev);
       if(restored && (restored.shiftLines.length || restored.callLines.length)){
         shiftLines = restored.shiftLines.length ? restored.shiftLines : [blankShift()];
