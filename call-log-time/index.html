@@ -159,7 +159,7 @@ function submittedValue(){
     if(!hasContent(L)) return;
     var timeStr = fmtTime12(L.hour, L.min, L.ampm);
     entries.push("• " + (timeStr ? timeStr + " — " : "") + (L.dir || "Call") + (L.who ? " with " + L.who : "")
-      + (L.name ? "  " + L.name : "")
+      + (L.name ? " — " + L.name : "")
       + (L.reason ? "  — " + L.reason : ""));
   });
   /* Empty on purpose when there are no entries: the email template's Call Log
