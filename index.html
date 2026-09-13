@@ -445,7 +445,7 @@ function submittedValue(st, ct){
       out.push(shiftNum + ". " + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ") | " + whenText + " (" + hoursText + ")");
       var bonusText = n(L.bonus) > 0 ? " | Bonus " + money(n(L.bonus)) : "";
       out.push("    OT: " + otText + " | Bill " + money(n(L.bill)) + "/hr | Pay " + money(n(L.pay)) + "/hr" + bonusText + " | GPM " + (c.ready ? pct(c.gpm) : "—"));
-      out.push("    Base Rate: " + (L.baseRate || "—") + " | Diff Hours: " + (L.diffHours || "—") + " | Prep Call: " + (L.prepCall || "—") + " | POC Updated: " + (L.pocUpdated || "—") + " | FSFU: " + (L.fsfuTask || "—") + " | RN Pad: " + (L.rnPad || "—"));
+      out.push("    Base Rate: " + (L.baseRate || "—") + " | Diff Pay/Bill Hours: " + (L.diffHours || "—") + " | Prep Call: " + (L.prepCall || "—") + " | POC Updated: " + (L.pocUpdated || "—") + " | FSFU: " + (L.fsfuTask || "—") + " | RN Pad: " + (L.rnPad || "—"));
       out.push("");
     });
   }
