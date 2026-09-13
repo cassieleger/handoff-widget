@@ -101,10 +101,13 @@ window.addEventListener("storage", function(e){
 /* Poll as a fallback in case the storage event doesn't reach this frame reliably. */
 setInterval(render, 1000);
 
-/* Builds the same board shown on-page as an inline-styled HTML block for the
-   notification email (this widget previously submitted an empty string, so
-   its email row always rendered blank — this is what actually feeds it). */
-function buildEmailHtml(){
+/* Builds the same numbers shown on-page as plain text for the notification
+   email (this widget previously submitted an empty string, so its email row
+   always rendered blank — this is what actually feeds it now). An HTML
+   version of this was tried first and confirmed NOT to work: Jotform shows
+   this widget's answer as plain escaped text, so real markup just showed up
+   as visible tag soup in the inbox instead of rendering. Plain text only. */
+function buildEmailText(){
   var raw = null;
   try { raw = localStorage.getItem(KEY); } catch(e){}
   var data = null;
@@ -112,25 +115,9 @@ function buildEmailHtml(){
   data = data || { gpm:null, cg:0, clin:0, totalStaff:0, callOff:0, ncns:0, totalCallOffs:0 };
 
   var gpmText = (data.gpm == null) ? "—" : data.gpm.toFixed(1) + "%";
-  var f = "font-family:'Work Sans',Helvetica,Arial,sans-serif;";
-  var ink = "#122834", ink3 = "#79716B", line = "#E3DBD0", accentSoft = "#E4EBE8";
-
-  return '<table cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:separate; border:1px solid '+line+'; border-top:3px solid #4A7272; border-radius:4px;"><tbody>'
-    + '<tr><td style="background-color:'+accentSoft+'; padding:14px 16px;">'
-      + '<div style="'+f+' font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#4A7272;">Personal daily GPM %</div>'
-      + '<div style="font-family:\'Playfair Display\',Georgia,serif; font-size:32px; font-weight:600; color:'+ink+'; margin-top:6px;">'+gpmText+'</div>'
-    + '</td></tr>'
-    + '<tr><td style="padding:10px 16px; border-top:1px solid '+line+';">'
-      + '<div style="'+f+' font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:'+ink3+';">Total Staff(s)</div>'
-      + '<div style="'+f+' font-size:18px; font-weight:600; color:'+ink+'; margin-top:2px;">'+(data.totalStaff||0)+'</div>'
-      + '<div style="'+f+' font-size:12px; color:#414651; margin-top:4px;">CG/IC/PT '+(data.cg||0)+' &middot; LVN/RN '+(data.clin||0)+'</div>'
-    + '</td></tr>'
-    + '<tr><td style="padding:10px 16px; border-top:1px solid '+line+';">'
-      + '<div style="'+f+' font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:'+ink3+';">Total Call-Off/NCNS</div>'
-      + '<div style="'+f+' font-size:18px; font-weight:600; color:'+ink+'; margin-top:2px;">'+(data.totalCallOffs||0)+'</div>'
-      + '<div style="'+f+' font-size:12px; color:#414651; margin-top:4px;">Call off &lt;48h '+(data.callOff||0)+' &middot; NCNS '+(data.ncns||0)+'</div>'
-    + '</td></tr>'
-    + '</tbody></table>';
+  return "Personal daily GPM: " + gpmText + "\n"
+    + "Total Staff(s): " + (data.totalStaff||0) + "  (CG/IC/PT " + (data.cg||0) + " · LVN/RN " + (data.clin||0) + ")\n"
+    + "Total Call-Off/NCNS: " + (data.totalCallOffs||0) + "  (Call off <48h " + (data.callOff||0) + " · NCNS " + (data.ncns||0) + ")";
 }
 
 /* ---- Jotform bridge (absent when the file is opened on its own) ---- */
@@ -148,7 +135,7 @@ function fit(){
 render();
 if(JF){
   JF.subscribe("ready", function(){ render(); fit(); });
-  JF.subscribe("submit", function(){ JF.sendSubmit({ valid: true, value: buildEmailHtml() }); });
+  JF.subscribe("submit", function(){ JF.sendSubmit({ valid: true, value: buildEmailText() }); });
 }
 window.addEventListener("resize", fit);
 })();
