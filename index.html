@@ -460,15 +460,9 @@ var lastHeight = 0;
    load, a blocked-submit banner appearing) can resize immediately, while
    typing goes through the debounced fit() below instead. */
 function fitNow(){
-  /* TEMP DIAGNOSTIC (2026-09-12): requestFrameResize disabled entirely to
-     test whether it's the source of an auto-scroll-to-bottom bug reported
-     when this field scrolls into view. Frame height is fixed via the
-     Jotform question's own frameHeight property instead while we isolate
-     the cause. Restore the two lines below once confirmed either way. */
-  return;
-  // if(!JF || !JF.requestFrameResize) return;
-  // var h = Math.ceil(document.body.scrollHeight) + 8;
-  // if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
+  if(!JF || !JF.requestFrameResize) return;
+  var h = Math.ceil(document.body.scrollHeight) + 8;
+  if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
 }
 /* Debounced: recalc() (and therefore fit()) runs on every keystroke as rows'
    warning banners show/hide, and resizing the iframe on every single
