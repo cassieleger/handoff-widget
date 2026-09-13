@@ -1,4 +1,4 @@
-﻿<!doctype html>
+﻿﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -138,15 +138,19 @@ function splitHours(total, rule){
 }
 
 /* Bill rate is flat for every hour worked (the client isn't billed an OT
-   premium); only the employee's pay gets the tiered OT/double-time multiplier. */
+   premium); only the employee's pay gets the tiered OT/double-time multiplier.
+   Nothing computes until OT Rule, Bill $/hr, and Pay $/hr are all filled in
+   (in addition to both shift times) — avoids a misleading GPM before the row
+   is actually finished. */
 function computeShift(L){
   var pay = n(L.pay), bill = n(L.bill);
   var totalHrs = hoursFromParts(L.startHour, L.startMin, L.startAmPm, L.endHour, L.endMin, L.endAmPm);
   var h = splitHours(totalHrs, L.otRule);
-  var revenue = totalHrs*bill;
-  var labor   = h.reg*pay  + h.ot1*pay *OT1_MULT + h.ot2*pay *OT2_MULT;
+  var ready = totalHrs>0 && !!L.otRule && bill>0 && pay>0;
+  var revenue = ready ? totalHrs*bill : 0;
+  var labor   = ready ? (h.reg*pay + h.ot1*pay*OT1_MULT + h.ot2*pay*OT2_MULT) : 0;
   return { revenue:revenue, labor:labor, gp:revenue-labor,
-           gpm: revenue>0 ? (revenue-labor)/revenue*100 : 0,
+           gpm: ready ? (revenue-labor)/revenue*100 : 0,
            counted: revenue>0 || labor>0, hours:h, totalHrs:totalHrs };
 }
 function blankShift(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:"",
@@ -239,7 +243,9 @@ var CALL_TYPES = ["Call off <48 hours","NCNS"];
 var callLines = [];
 
 function blankCall(){ return {id:uid(), type:"", client:"", emp:"", callTime:"", shiftTime:"", reason:""}; }
-function callHasContent(L){ return L.client || L.emp || L.callTime || L.shiftTime || L.reason; }
+/* Only counts once every box on the row is filled in — a half-filled row
+   doesn't get silently folded into the Call off/NCNS numbers. */
+function callHasContent(L){ return !!(L.type && L.client && L.emp && L.callTime && L.shiftTime && L.reason); }
 
 function nodeCall(L){
   var d = document.createElement("div");
@@ -429,4 +435,5 @@ window.addEventListener("resize", fit);
 </script>
 </body>
 </html>
+
 
