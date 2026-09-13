@@ -377,8 +377,7 @@ function submittedValue(st, ct){
       /* Numbered so multiple staff/shifts are clearly separate entries, one
          clearly-labeled line per fact instead of one long run-on line. */
       out.push(shiftNum + ". " + (L.client || "Client") + "  —  " + (L.cg || "Unassigned") + " (" + L.disc + ")");
-      out.push("    " + whenText + "   (" + hoursText + ")");
-      out.push("    OT Rule: " + otText + "     Bill: " + money(n(L.bill)) + "/hr     Pay: " + money(n(L.pay)) + "/hr     GPM: " + (c.ready ? pct(c.gpm) : "—"));
+      out.push("    " + whenText + " (" + hoursText + ")  OT: " + otText + "  Bill $" + money(n(L.bill)) + "/hr  Pay $" + money(n(L.pay)) + "/hr  GPM " + (c.ready ? pct(c.gpm) : "—"));
       out.push("");
     });
   }
