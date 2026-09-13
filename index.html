@@ -142,14 +142,22 @@ function splitHours(total, rule){
 
 /* Bill rate is flat for every hour worked (the client isn't billed an OT
    premium); only the employee's pay gets the tiered OT/double-time multiplier.
-   Nothing computes until OT Rule, Bill $/hr, and Pay $/hr are all filled in
-   (in addition to both shift times) — avoids a misleading GPM before the row
-   is actually finished. */
+   Nothing computes until literally every box on the row — every text field
+   and every dropdown, not just the ones that feed the math — is filled in.
+   Avoids a misleading GPM (or a row silently entering the staff count) before
+   the row is actually finished. */
+function shiftAllFilled(L){
+  return !!(L.shiftDate && L.client && L.cg && L.disc &&
+    L.startHour && L.startMin !== "" && L.startAmPm &&
+    L.endHour && L.endMin !== "" && L.endAmPm &&
+    L.otRule && n(L.bill) > 0 && n(L.pay) > 0 &&
+    L.baseRate && L.prepCall && L.pocUpdated && L.fsfuTask && L.rnPad);
+}
 function computeShift(L){
   var pay = n(L.pay), bill = n(L.bill);
   var totalHrs = hoursFromParts(L.startHour, L.startMin, L.startAmPm, L.endHour, L.endMin, L.endAmPm);
   var h = splitHours(totalHrs, L.otRule);
-  var ready = totalHrs>0 && !!L.otRule && bill>0 && pay>0;
+  var ready = shiftAllFilled(L) && totalHrs>0;
   var revenue = ready ? totalHrs*bill : 0;
   var labor   = ready ? (h.reg*pay + h.ot1*pay*OT1_MULT + h.ot2*pay*OT2_MULT) : 0;
   return { revenue:revenue, labor:labor, gp:revenue-labor,
@@ -163,7 +171,10 @@ function blankShift(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:""
    whether to show the "missing info" warning (no point nagging on a fresh
    blank row nobody has touched). */
 function shiftStarted(L){
-  return !!(L.client || L.cg || L.disc || L.startHour || L.endHour || L.otRule || n(L.bill) || n(L.pay));
+  return !!(L.shiftDate || L.client || L.cg || L.disc ||
+    L.startHour || L.startMin || L.startAmPm || L.endHour || L.endMin || L.endAmPm ||
+    L.otRule || n(L.bill) || n(L.pay) ||
+    L.baseRate || L.prepCall || L.pocUpdated || L.fsfuTask || L.rnPad);
 }
 
 function nodeShift(L){
@@ -206,7 +217,7 @@ function nodeShift(L){
       '<div class="field"><label>FSFU Task in WS (if appl.)</label><select data-k="fsfuTask"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
       '<div class="field"><label>Nurse Assigned in RN Pad? (if appl.)</label><select data-k="rnPad"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
     '</div>'+
-    '<div class="line-warn" data-o="warn" hidden>&#9888; Missing info above — this shift won’t count toward GPM until Shift Start/End, OT Rule, Bill $/hr, and Pay $/hr are all filled in.</div>'+
+    '<div class="line-warn" data-o="warn" hidden>&#9888; Missing info above — this shift won’t count toward GPM or the Daily Summary Board until every field and dropdown on this row is filled in.</div>'+
     '<div class="line-out">'+
       '<div><span class="lbl">Hours</span> <span class="v" data-o="hrs">&mdash;</span></div>'+
       '<div><span class="lbl">GPM for this shift</span> <span class="v" data-o="gpm">&mdash;</span></div>'+
