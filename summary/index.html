@@ -1,4 +1,4 @@
-﻿﻿﻿<!doctype html>
+﻿﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -94,31 +94,23 @@ function render(){
   lastSeenTs = data.ts || lastSeenTs;
 }
 
+/* Builds a always-non-empty summary string for the submitted value, so this
+   read-only display field's row never gets hidden from the notification
+   email by Jotform's "hide empty fields" setting, even on a 0-shift day. */
+function submitText(){
+  return "Personal daily GPM: " + $("gpm").textContent +
+    "  |  Total Staff(s): " + $("totalStaff").textContent +
+    " (CG/IC/PT " + $("cg").textContent + " / LVN/RN " + $("clin").textContent + ")" +
+    "  |  Total Call-Off/NCNS: " + $("totalCallOffs").textContent +
+    " (Call off <48h " + $("callOff").textContent + " / NCNS " + $("ncns").textContent + ")";
+}
+
 /* "storage" fires in other same-origin windows/iframes when localStorage changes elsewhere. */
 window.addEventListener("storage", function(e){
   if(e.key === KEY) render();
 });
 /* Poll as a fallback in case the storage event doesn't reach this frame reliably. */
 setInterval(render, 1000);
-
-/* Builds the same numbers shown on-page as plain text for the notification
-   email (this widget previously submitted an empty string, so its email row
-   always rendered blank — this is what actually feeds it now). An HTML
-   version of this was tried first and confirmed NOT to work: Jotform shows
-   this widget's answer as plain escaped text, so real markup just showed up
-   as visible tag soup in the inbox instead of rendering. Plain text only. */
-function buildEmailText(){
-  var raw = null;
-  try { raw = localStorage.getItem(KEY); } catch(e){}
-  var data = null;
-  if(raw){ try { data = JSON.parse(raw); } catch(e){ data = null; } }
-  data = data || { gpm:null, cg:0, clin:0, totalStaff:0, callOff:0, ncns:0, totalCallOffs:0 };
-
-  var gpmText = (data.gpm == null) ? "—" : data.gpm.toFixed(1) + "%";
-  return "Personal daily GPM: " + gpmText + "\n"
-    + "Total Staff(s): " + (data.totalStaff||0) + "  (CG/IC/PT " + (data.cg||0) + " · LVN/RN " + (data.clin||0) + ")\n"
-    + "Total Call-Off/NCNS: " + (data.totalCallOffs||0) + "  (Call off <48h " + (data.callOff||0) + " · NCNS " + (data.ncns||0) + ")";
-}
 
 /* ---- Jotform bridge (absent when the file is opened on its own) ---- */
 var JF = window.JFCustomWidget;
@@ -135,13 +127,12 @@ function fit(){
 render();
 if(JF){
   JF.subscribe("ready", function(){ render(); fit(); });
-  JF.subscribe("submit", function(){ JF.sendSubmit({ valid: true, value: buildEmailText() }); });
+  JF.subscribe("submit", function(){ JF.sendSubmit({ valid: true, value: submitText() }); });
 }
 window.addEventListener("resize", fit);
 })();
 </script>
 </body>
 </html>
-
 
 
