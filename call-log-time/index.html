@@ -115,15 +115,20 @@ function render(){
 }
 
 function submittedValue(){
-  var out = [];
+  var entries = [];
   lines.forEach(function(L){
     if(!hasContent(L)) return;
     var timeStr = fmtTime12(L.hour, L.min, L.ampm);
-    out.push("• " + (timeStr ? timeStr + " — " : "") + (L.dir || "Call") + (L.who ? " with " + L.who : "")
+    entries.push("• " + (timeStr ? timeStr + " — " : "") + (L.dir || "Call") + (L.who ? " with " + L.who : "")
       + (L.name ? "  " + L.name : "")
       + (L.reason ? "  — " + L.reason : ""));
   });
-  return out.join("\n");
+  /* Empty on purpose when there are no entries: the email template's Call Log
+     row is a single merged cell with no separate hardcoded label, so an empty
+     string here means the whole row renders blank instead of showing a
+     "Call Log:" heading with nothing under it. */
+  if(!entries.length) return "";
+  return ["CALL LOG", ""].concat(entries).join("\n");
 }
 
 var lastValue = "";
