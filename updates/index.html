@@ -125,7 +125,7 @@ function submittedValue(){
   lines.forEach(function(L){
     if(!hasContent(L)) return;
     var bits = [];
-    if(L.regarding) bits.push("[" + L.regarding + "]");
+    if(L.regarding) bits.push(L.regarding);
     if(L.name) bits.push(nbsp(L.name));
     var head = bits.join("  ");
     entries.push("• " + (head || "Update") + (L.update ? ": " + L.update : ""));
