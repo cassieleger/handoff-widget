@@ -42,27 +42,22 @@ select{appearance:none;
 /* entry lines (shared look for both shift rows and call-off rows) */
 .line{border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-bottom:10px; background:var(--surface)}
 .line-id{display:grid; gap:9px; padding:11px 12px; align-items:end}
+.line-id.shift-id{grid-template-columns:1fr 1.2fr 1.2fr 165px 34px}
 .line-id.call-id{grid-template-columns:170px 1.2fr 1.2fr 34px}
 .line-fields{display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:12px 10px; padding:2px 12px 14px}
 .line-fields.call-fields{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.line-fields.time-fields{grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); padding-bottom:2px}
+.line-fields.rate-fields{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .line-fields.confirm-fields{grid-template-columns:repeat(2,1fr);
   border-top:1px solid var(--line); margin-top:2px; padding-top:14px}
 .field{display:flex; flex-direction:column; gap:5px; min-width:0}
 .field-time{min-width:0}
 .time-group{display:flex; gap:4px}
 .time-group select,.time-group input{width:auto; flex:1 1 0; min-width:0; padding:8px 4px; text-align:center}
-/* Row 1 (identity + hours) puts the delete button outside the auto-fit
-   field grid so it stays a fixed 34px square regardless of how many fields
-   wrap onto the row. */
-.row1-wrap{display:flex; align-items:end; gap:8px; padding:11px 12px 2px}
-.row1-fields{flex:1; display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px 10px; padding:0; min-width:0}
-.row2-fields{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
-/* Read-only computed values (Hours, GPM) shown inline in the field grid
-   instead of a separate summary strip, styled to look like a disabled input. */
-.ro-box{font-family:inherit; font-size:14.5px; color:var(--ink); background:var(--sunken);
-  border:1px solid var(--line-2); border-radius:4px; padding:8px 10px; min-height:36px;
-  display:flex; align-items:center; font-variant-numeric:tabular-nums}
-.ro-box.accent{color:var(--accent); font-weight:600}
+.line-out{display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:var(--accent-soft); border-top:1px solid var(--line); padding:9px 12px}
+.line-out .lbl{color:var(--accent)}
+.line-out .v{font-size:18px; font-weight:600; color:var(--accent); font-variant-numeric:tabular-nums}
 .line-warn{display:flex; align-items:center; gap:7px; background:var(--gold-soft); color:var(--gold);
   font-size:12.5px; font-weight:600; padding:8px 12px; border-top:1px solid var(--line)}
 .line-warn[hidden]{display:none}
@@ -75,8 +70,8 @@ select{appearance:none;
 .add:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
 
 @media (max-width:620px){
-  .row1-wrap{flex-wrap:wrap}
-  .row1-wrap .del{margin-left:auto}
+  .line-id.shift-id{grid-template-columns:1fr 34px}
+  .line-id.shift-id .f-shift,.line-id.shift-id .f-cg,.line-id.shift-id .f-disc{grid-column:1 / 2}
   .line-id.call-id{grid-template-columns:1fr 34px}
   .line-id.call-id .f-type,.line-id.call-id .f-client,.line-id.call-id .f-emp{grid-column:1 / 2}
   .line-fields.confirm-fields{grid-template-columns:1fr}
@@ -207,50 +202,50 @@ function nodeShift(L){
   var hourOpts = '<option value="">Hr</option>'+HOURS12.map(function(h){ return '<option>'+h+'</option>'; }).join("");
   d.innerHTML =
     /* Row 1: identity + when + total hours worked */
-    '<div class="row1-wrap">'+
-      '<div class="row1-fields">'+
-        '<div class="field f-client"><label>Client Name</label><input type="text" data-k="client" placeholder="First & Last Name"></div>'+
-        '<div class="field f-cg"><label>Employee</label><input type="text" data-k="cg" placeholder="First & Last Name"></div>'+
-        '<div class="field f-disc"><label>Employee Type</label><select data-k="disc"><option value="">Please Select</option>'+
-          DISC.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
-        '<div class="field f-shift"><label>Shift Date</label><input type="date" data-k="shiftDate"></div>'+
-        '<div class="field field-time"><label>Shift Start</label><div class="time-group">'+
-          '<select data-k="startHour">'+hourOpts+'</select>'+
-          '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="startMin" placeholder=":00">'+
-          '<select data-k="startAmPm"><option value="">--</option><option>AM</option><option>PM</option></select>'+
-        '</div></div>'+
-        '<div class="field field-time"><label>Shift End</label><div class="time-group">'+
-          '<select data-k="endHour">'+hourOpts+'</select>'+
-          '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="endMin" placeholder=":00">'+
-          '<select data-k="endAmPm"><option value="">--</option><option>AM</option><option>PM</option></select>'+
-        '</div></div>'+
-        '<div class="field"><label>Hours</label><div class="ro-box" data-o="hrs">&mdash;</div></div>'+
-      '</div>'+
+    '<div class="line-id shift-id">'+
+      '<div class="field f-shift"><label>Shift Date</label><input type="date" data-k="shiftDate"></div>'+
+      '<div class="field f-client"><label>Client Name</label><input type="text" data-k="client" placeholder="First & Last Name"></div>'+
+      '<div class="field f-cg"><label>Employee</label><input type="text" data-k="cg" placeholder="First & Last Name"></div>'+
+      '<div class="field f-disc"><label>Employee Type</label><select data-k="disc"><option value="">Please Select</option>'+
+        DISC.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
       '<button type="button" class="del" aria-label="Remove shift">&times;</button>'+
     '</div>'+
-    /* Row 2: the money math (OT rule, rates, bonus, GPM readout) */
-    '<div class="line-fields row2-fields">'+
+    '<div class="line-fields time-fields">'+
+      '<div class="field field-time"><label>Shift Start</label><div class="time-group">'+
+        '<select data-k="startHour">'+hourOpts+'</select>'+
+        '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="startMin" placeholder=":00">'+
+        '<select data-k="startAmPm"><option value="">--</option><option>AM</option><option>PM</option></select>'+
+      '</div></div>'+
+      '<div class="field field-time"><label>Shift End</label><div class="time-group">'+
+        '<select data-k="endHour">'+hourOpts+'</select>'+
+        '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="endMin" placeholder=":00">'+
+        '<select data-k="endAmPm"><option value="">--</option><option>AM</option><option>PM</option></select>'+
+      '</div></div>'+
+    '</div>'+
+    '<div class="line-fields rate-fields">'+
       '<div class="field"><label>OT Rule</label><select data-k="otRule"><option value="">Please Select</option>'+
         '<option value="facility">Facility Overtime Rule</option>'+
         '<option value="regular">Regular Overtime Rule</option>'+
       '</select></div>'+
       '<div class="field"><label>Bill $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="bill" placeholder="0.00"></div>'+
       '<div class="field"><label>Pay $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="pay" placeholder="0.00"></div>'+
-      '<div class="field"><label>Bonus $ (optional)</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="bonus" placeholder="0.00"></div>'+
-      '<div class="field"><label>GPM for this shift</label><div class="ro-box accent" data-o="gpm">&mdash;</div></div>'+
-    '</div>'+
-    /* Row 3: the confirmation questions */
-    '<div class="line-fields confirm-fields">'+
       '<div class="field"><label>Base Rate?</label><select data-k="baseRate"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
+      '<div class="field"><label>Bonus $ (optional)</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="bonus" placeholder="0.00"></div>'+
       '<div class="field"><label>Bill/Pay Different Hours?</label><select data-k="diffHours"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
       '<div class="field" data-o="billBox" hidden><label>Bill Hours</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="billHours" placeholder="0.00"></div>'+
       '<div class="field" data-o="payBox" hidden><label>Pay Hours</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="payHours" placeholder="0.00"></div>'+
+    '</div>'+
+    '<div class="line-fields confirm-fields">'+
       '<div class="field"><label>Prep Call Completed (if appl.)</label><select data-k="prepCall"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
       '<div class="field"><label>POC Updated?</label><select data-k="pocUpdated"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
       '<div class="field"><label>FSFU Task in WS (if appl.)</label><select data-k="fsfuTask"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
       '<div class="field"><label>Nurse Assigned in RN Pad? (if appl.)</label><select data-k="rnPad"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
     '</div>'+
-    '<div class="line-warn" data-o="warn" hidden>&#9888; Missing info above — won\'t update your Daily Summary Board totals until all fields are filled out.</div>';
+    '<div class="line-warn" data-o="warn" hidden>&#9888; Missing info above — won\'t update your Daily Summary Board totals until all fields are filled out.</div>'+
+    '<div class="line-out">'+
+      '<div><span class="lbl">Hours</span> <span class="v" data-o="hrs">&mdash;</span></div>'+
+      '<div><span class="lbl">GPM for this shift</span> <span class="v" data-o="gpm">&mdash;</span></div>'+
+    '</div>';
 
   d.querySelectorAll("[data-k]").forEach(function(inp){
     var k = inp.getAttribute("data-k");
@@ -405,10 +400,13 @@ function submittedValue(st, ct){
       var otText = OT_LABELS[L.otRule] || "—";
       /* Numbered so multiple staff/shifts are clearly separate entries, one
          clearly-labeled line per fact instead of one long run-on line. */
-      out.push(shiftNum + ". " + (L.client || "Client") + "  —  " + (L.cg || "Unassigned") + " (" + L.disc + ")");
+      /* Row 1: who + when + total hours. Row 2: the money math + GPM.
+         Row 3: the confirmation questions. (Client's spec for the email
+         text layout — NOT the on-screen widget form, which stays as-is.) */
+      out.push(shiftNum + ". " + (L.client || "Client") + "  —  " + (L.cg || "Unassigned") + " (" + L.disc + ")   " + whenText + "  (" + hoursText + ")");
       var bonusText = n(L.bonus) > 0 ? "  Bonus " + money(n(L.bonus)) : "";
-      out.push("    " + whenText + " (" + hoursText + ")  OT: " + otText + "  Bill " + money(n(L.bill)) + "/hr  Pay " + money(n(L.pay)) + "/hr" + bonusText + "  GPM " + (c.ready ? pct(c.gpm) : "—"));
-      out.push("    Base Rate: " + (L.baseRate || "—") + "  Prep Call: " + (L.prepCall || "—") + "  POC Updated: " + (L.pocUpdated || "—") + "  FSFU: " + (L.fsfuTask || "—") + "  RN Pad: " + (L.rnPad || "—"));
+      out.push("    OT: " + otText + "  Bill " + money(n(L.bill)) + "/hr  Pay " + money(n(L.pay)) + "/hr" + bonusText + "  GPM " + (c.ready ? pct(c.gpm) : "—"));
+      out.push("    Base Rate: " + (L.baseRate || "—") + "  Diff Hours: " + (L.diffHours || "—") + "  Prep Call: " + (L.prepCall || "—") + "  POC Updated: " + (L.pocUpdated || "—") + "  FSFU: " + (L.fsfuTask || "—") + "  RN Pad: " + (L.rnPad || "—"));
       out.push("");
     });
   }
