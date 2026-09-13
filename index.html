@@ -404,15 +404,9 @@ function callTotals(){
    email row instead of being repeated here — see summary/index.html. */
 var lastValue = "";
 var OT_LABELS = { facility: "Facility", regular: "Regular" };
-var DATA_START = "[data:do-not-edit]", DATA_END = "[/data]";
-/* Pulls this widget's own previously-submitted shiftLines/callLines back out
-   of a prior value string (see the hidden block submittedValue() appends
-   below). Returns null if there's nothing there yet (a brand-new entry) or
-   the data is malformed/from before this feature existed. */
-/* Shared by parsePreviousValue() below and hdApplyRestore() above - both end
-   up with raw shiftLines/callLines arrays from somewhere and need the same
-   "fill in any fields a prior version of this widget didn't have yet, give
-   every row a fresh id if it's missing one" treatment. */
+/* Shared by hdApplyRestore() above - fills in any fields a prior version of
+   this widget didn't have yet, and gives every row a fresh id if it's
+   missing one. */
 function restoreLines(rawShifts, rawCalls){
   var shifts = Array.isArray(rawShifts) ? rawShifts : [];
   var calls = Array.isArray(rawCalls) ? rawCalls : [];
@@ -420,15 +414,6 @@ function restoreLines(rawShifts, rawCalls){
     shiftLines: shifts.map(function(L){ return Object.assign(blankShift(), L, { id: (L && L.id) || uid() }); }),
     callLines: calls.map(function(L){ return Object.assign(blankCall(), L, { id: (L && L.id) || uid() }); })
   };
-}
-function parsePreviousValue(v){
-  if(!v || typeof v !== "string") return null;
-  var i = v.indexOf(DATA_START), j = v.indexOf(DATA_END);
-  if(i === -1 || j === -1 || j <= i) return null;
-  var data;
-  try { data = JSON.parse(v.substring(i + DATA_START.length, j)); } catch(e){ return null; }
-  if(!data || typeof data !== "object") return null;
-  return restoreLines(data.shiftLines, data.callLines);
 }
 
 function submittedValue(st, ct){
@@ -469,7 +454,11 @@ function submittedValue(st, ct){
     /* Clear divider so this section reads as distinctly separate from
        Shifts Staffed above, even though both share one email row/field. */
     if(out.length){
-      out.push("═══════════════════");
+      /* Measured against the actual widened (1060px) email column: "═" renders
+         at ~4.3px/char in a typical client, so ~160 chars reaches edge to edge
+         (a little past is fine - it just wraps onto a 2nd short line, still
+         reading as a full-width bar rather than a short dash). */
+      out.push("═".repeat(160));
       out.push("");
     }
     out.push("CALL-OFFS / NCNS");
@@ -497,15 +486,13 @@ function submittedValue(st, ct){
     out.pop(); /* drop the trailing blank line from the last entry above */
   }
 
-  /* Technical data block, kept out of the way at the very end with a plain-
-     English label so it reads as intentional rather than random leftover
-     text — lets this widget restore its own rows when a submission is
-     reopened via "Edit Submission", since Jotform has no built-in way to
-     hand a custom widget its own previous structured data. */
-  out.push("");
-  out.push("— — — — — — — — — —");
-  out.push('(Internal data below — supports "Edit Submission" restoring this row. Please disregard.)');
-  out.push(DATA_START + JSON.stringify({ shiftLines: shiftLines, callLines: callLines }) + DATA_END);
+  /* No technical data block appended here anymore (2026-09-13): the restore
+     data now lives entirely in the separate "handoffData" carrier field
+     (qid 202, see hdBroadcastRows()/hdApplyRestore() above), which the email
+     never references - so this widget's own answer is 100% human-readable
+     text now. This widget no longer reads its OWN previous value for restore
+     at all (see the old own-value restore block removed from the "ready"
+     handler below). */
 
   return out.join("\n");
 }
@@ -614,28 +601,16 @@ if(JF){
   JF.subscribe("ready", function(readyData){
     jfReady = true;
     fitNow();
-    /* Restore previous rows when reopening an existing submission via "Edit
-       Submission" — client accepted the tradeoff that the hidden data block
-       in submittedValue() shows as plain (ignorable) text at the bottom of
-       the email/Review Answers page in exchange for this working, after an
-       earlier HTML-comment-based attempt at the same idea didn't render
-       hidden in actual inbox testing. A brand-new entry has no prior value,
-       so this is a no-op then and the blank defaults already rendered stay.
-       2026-09-13: fixed a real bug here — the previous value is handed to
-       the ready callback as its own argument, NOT retrievable afterward via
-       getWidgetSetting("value") (that call was always returning something
-       unusable, which is why restore never actually worked despite the data
-       being correctly present in the submission). Try both, argument first. */
-    try {
-      var prev = (readyData && readyData.value) || (JF.getWidgetSetting && JF.getWidgetSetting("value"));
-      var restored = parsePreviousValue(prev);
-      if(restored && (restored.shiftLines.length || restored.callLines.length)){
-        shiftLines = restored.shiftLines.length ? restored.shiftLines : [blankShift()];
-        callLines = restored.callLines.length ? restored.callLines : [blankCall()];
-        renderShifts();
-        renderCalls();
-      }
-    } catch(e){ /* malformed/missing prior data — keep the blank defaults */ }
+    /* Restore-on-"Edit Submission" no longer reads this widget's OWN previous
+       value (2026-09-13) - that used to require appending a technical data
+       block to this widget's own answer, which showed up as visible clutter
+       in the email and (per a matching Outlook check the same day) actually
+       rendered WRONG there too (always {"shiftLines":[],"callLines":[]}
+       regardless of real content - a Jotform email-composition quirk, not a
+       storage bug: the stored answer itself was always correct via the API).
+       Restore now comes entirely from the separate "handoffData" carrier
+       field via hdApplyRestore() (storage-event listener + direct read,
+       registered below) - see that field's own comments for how. */
     JF.subscribe("submit", function(){
       /* Not required: a day with no shifts and no call-offs/NCNS is valid. */
       JF.sendSubmit({ valid: true, value: lastValue });
