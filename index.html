@@ -335,6 +335,25 @@ function callTotals(){
    email row instead of being repeated here — see summary/index.html. */
 var lastValue = "";
 var OT_LABELS = { facility: "Facility", regular: "Regular" };
+var DATA_START = "[data:do-not-edit]", DATA_END = "[/data]";
+/* Pulls this widget's own previously-submitted shiftLines/callLines back out
+   of a prior value string (see the hidden block submittedValue() appends
+   below). Returns null if there's nothing there yet (a brand-new entry) or
+   the data is malformed/from before this feature existed. */
+function parsePreviousValue(v){
+  if(!v || typeof v !== "string") return null;
+  var i = v.indexOf(DATA_START), j = v.indexOf(DATA_END);
+  if(i === -1 || j === -1 || j <= i) return null;
+  var data;
+  try { data = JSON.parse(v.substring(i + DATA_START.length, j)); } catch(e){ return null; }
+  if(!data || typeof data !== "object") return null;
+  var shifts = Array.isArray(data.shiftLines) ? data.shiftLines : [];
+  var calls = Array.isArray(data.callLines) ? data.callLines : [];
+  return {
+    shiftLines: shifts.map(function(L){ return Object.assign(blankShift(), L, { id: (L && L.id) || uid() }); }),
+    callLines: calls.map(function(L){ return Object.assign(blankCall(), L, { id: (L && L.id) || uid() }); })
+  };
+}
 
 function submittedValue(st, ct){
   var out = [];
@@ -373,6 +392,15 @@ function submittedValue(st, ct){
         + (L.reason ? "  — " + L.reason : ""));
     });
   }
+
+  if(!out.length) out.push("No shifts or call-offs entered.");
+
+  /* Hidden technical data block (ignore if reading this in an email or the
+     Review Answers page) — lets this widget restore its own rows when a
+     submission is reopened via "Edit Submission", since Jotform has no
+     built-in way to hand a custom widget its own previous structured data. */
+  out.push("");
+  out.push(DATA_START + JSON.stringify({ shiftLines: shiftLines, callLines: callLines }) + DATA_END);
 
   return out.join("\n");
 }
@@ -461,20 +489,35 @@ function sync(){
    event — that event can take a moment (or lag independently of the other
    widget on this form), and waiting on it left the Daily Summary Board
    showing stale/blank data for a beat before this widget caught up and
-   broadcast its real (zeroed) totals.
-   NOTE: reopening a past submission to edit still resets this section to
-   blank — restoring it needs the full row-by-row data to travel somewhere
-   Jotform will hand back on edit without it also leaking into the visible
-   email text (a hidden HTML comment in this field's own answer was tried
-   and confirmed NOT to work — it showed up as visible text in the inbox).
-   That needs a different mechanism (e.g. a real Jotform hidden field) and
-   is follow-up work, not included in this pass. */
+   broadcast its real (zeroed) totals. Blank defaults render right away;
+   if "Edit Submission" handed back a prior value, the "ready" handler below
+   swaps in the restored rows once the bridge confirms it's actually editing
+   an existing entry, rather than delaying this render for every fresh entry. */
 shiftLines = [blankShift()];
 callLines = [blankCall()];
 renderShifts();
 renderCalls();
 if(JF){
-  JF.subscribe("ready", function(){ fitNow(); });
+  JF.subscribe("ready", function(){
+    fitNow();
+    /* Restore previous rows when reopening an existing submission via "Edit
+       Submission" — client accepted the tradeoff that the hidden data block
+       in submittedValue() shows as plain (ignorable) text at the bottom of
+       the email/Review Answers page in exchange for this working, after an
+       earlier HTML-comment-based attempt at the same idea didn't render
+       hidden in actual inbox testing. A brand-new entry has no prior value,
+       so this is a no-op then and the blank defaults already rendered stay. */
+    try {
+      var prev = JF.getWidgetSetting("value");
+      var restored = parsePreviousValue(prev);
+      if(restored && (restored.shiftLines.length || restored.callLines.length)){
+        shiftLines = restored.shiftLines.length ? restored.shiftLines : [blankShift()];
+        callLines = restored.callLines.length ? restored.callLines : [blankCall()];
+        renderShifts();
+        renderCalls();
+      }
+    } catch(e){ /* malformed/missing prior data — keep the blank defaults */ }
+  });
   JF.subscribe("submit", function(){
     /* Not required: a day with no shifts and no call-offs/NCNS is valid. */
     JF.sendSubmit({ valid: true, value: lastValue });
