@@ -61,6 +61,9 @@ select{appearance:none;
 .line-warn{display:flex; align-items:center; gap:7px; background:var(--gold-soft); color:var(--gold);
   font-size:12.5px; font-weight:600; padding:8px 12px; border-top:1px solid var(--line)}
 .line-warn[hidden]{display:none}
+#restoreNote{display:flex; align-items:center; gap:7px; background:var(--gold-soft); color:var(--gold);
+  font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:4px; margin-bottom:14px}
+#restoreNote[hidden]{display:none}
 .field[hidden]{display:none}
 .del{background:transparent; border:1px solid var(--line-2); color:var(--ink-3); border-radius:4px;
   height:36px; width:34px; cursor:pointer; font-size:16px; line-height:1; font-family:inherit}
@@ -79,6 +82,8 @@ select{appearance:none;
 </style>
 </head>
 <body>
+
+<div id="restoreNote" hidden>&#9888; Restored from this submission.</div>
 
 <div class="section-label first">Call-offs &amp; NCNS</div>
 <div id="callLines"></div>
@@ -112,6 +117,48 @@ var DISC = ["CG","IC","LVN","PT","RN"], CLINICAL = {LVN:1, RN:1};
 var HOURS12 = ["1","2","3","4","5","6","7","8","9","10","11","12"];
 var shiftLines = [], shiftOuts = {};
 var OT1_MULT = 1.5, OT2_MULT = 2;
+
+/* ---- Cross-iframe relay to the separate "handoffData" carrier widget ----
+   That widget holds this session's shiftLines/callLines (and the Call Log
+   widget's lines) as ITS OWN answer instead of this widget appending them to
+   its own text, so the notification email (which only prints merge tags it
+   explicitly references) never has to show them. Same localStorage/"storage"
+   event mechanism the Daily Summary Board widget already uses to read this
+   widget's broadcasts. */
+var HD_SID = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+var HD_KEY_SHIFTS = "lcHandoffRowsShifts";
+var HD_KEY_RESTORE = "lcHandoffRestore";
+var HD_KEY_HELLO = "lcHandoffStoreHello";
+var hdRestoredOnce = false;
+function hdIsPristine(){ return !shiftLines.some(shiftStarted) && !callLines.some(callStarted); }
+function hdBroadcastRows(){
+  try {
+    localStorage.setItem(HD_KEY_SHIFTS, JSON.stringify({ v:1, sid:HD_SID, ts:Date.now(), shiftLines: shiftLines, callLines: callLines }));
+  } catch(e){ /* storage may be unavailable (private mode, blocked) - non-fatal */ }
+}
+/* Only ever called with data that arrived either via a live "storage" event,
+   or via a direct localStorage read at load whose own ts is under ~10s old
+   (the carrier widget just wrote it this same page-load) - see callers below.
+   Never applied if this widget already has anything typed in it, and never
+   applied twice in one page load. */
+function hdApplyRestore(data){
+  if(hdRestoredOnce || !hdIsPristine() || !data) return;
+  var restored = restoreLines(data.shiftLines, data.callLines);
+  if(!restored.shiftLines.length && !restored.callLines.length) return;
+  hdRestoredOnce = true;
+  shiftLines = restored.shiftLines.length ? restored.shiftLines : [blankShift()];
+  callLines = restored.callLines.length ? restored.callLines : [blankCall()];
+  renderShifts();
+  renderCalls();
+  var note = $("restoreNote");
+  if(note){
+    var parts = [];
+    if(restored.shiftLines.length) parts.push(restored.shiftLines.length + (restored.shiftLines.length===1?" shift":" shifts"));
+    if(restored.callLines.length) parts.push(restored.callLines.length + (restored.callLines.length===1?" call-off/NCNS":" call-offs/NCNS"));
+    note.textContent = "⚠ Restored " + parts.join(" and ") + " from this submission.";
+    note.hidden = false;
+  }
+}
 
 /* An end time at or before start is treated as crossing midnight.
    Nothing computes until both AM/PM sides are actually chosen (no silent AM default). */
@@ -362,6 +409,18 @@ var DATA_START = "[data:do-not-edit]", DATA_END = "[/data]";
    of a prior value string (see the hidden block submittedValue() appends
    below). Returns null if there's nothing there yet (a brand-new entry) or
    the data is malformed/from before this feature existed. */
+/* Shared by parsePreviousValue() below and hdApplyRestore() above - both end
+   up with raw shiftLines/callLines arrays from somewhere and need the same
+   "fill in any fields a prior version of this widget didn't have yet, give
+   every row a fresh id if it's missing one" treatment. */
+function restoreLines(rawShifts, rawCalls){
+  var shifts = Array.isArray(rawShifts) ? rawShifts : [];
+  var calls = Array.isArray(rawCalls) ? rawCalls : [];
+  return {
+    shiftLines: shifts.map(function(L){ return Object.assign(blankShift(), L, { id: (L && L.id) || uid() }); }),
+    callLines: calls.map(function(L){ return Object.assign(blankCall(), L, { id: (L && L.id) || uid() }); })
+  };
+}
 function parsePreviousValue(v){
   if(!v || typeof v !== "string") return null;
   var i = v.indexOf(DATA_START), j = v.indexOf(DATA_END);
@@ -369,12 +428,7 @@ function parsePreviousValue(v){
   var data;
   try { data = JSON.parse(v.substring(i + DATA_START.length, j)); } catch(e){ return null; }
   if(!data || typeof data !== "object") return null;
-  var shifts = Array.isArray(data.shiftLines) ? data.shiftLines : [];
-  var calls = Array.isArray(data.callLines) ? data.callLines : [];
-  return {
-    shiftLines: shifts.map(function(L){ return Object.assign(blankShift(), L, { id: (L && L.id) || uid() }); }),
-    callLines: calls.map(function(L){ return Object.assign(blankCall(), L, { id: (L && L.id) || uid() }); })
-  };
+  return restoreLines(data.shiftLines, data.callLines);
 }
 
 function submittedValue(st, ct){
@@ -472,6 +526,7 @@ function recalc(){
 
   lastValue = submittedValue(st, ct);
   broadcastSummary(st, ct);
+  hdBroadcastRows();
   sync();
 }
 
@@ -588,6 +643,37 @@ shiftLines = [blankShift()];
 callLines = [blankCall()];
 renderShifts();
 renderCalls();
+
+/* Cross-iframe listener for the "handoffData" carrier widget: it re-announces
+   itself via HD_KEY_HELLO whenever IT loads (in case that happens after this
+   widget already broadcast, so this widget gets one more chance to be heard),
+   and hands back a prior submission's rows via HD_KEY_RESTORE. Both only ever
+   act on a live event fired from that OTHER iframe - "storage" never fires in
+   the same document that wrote the key, which is exactly what's wanted here. */
+window.addEventListener("storage", function(e){
+  if(!e || !e.newValue) return;
+  if(e.key === HD_KEY_HELLO){
+    hdBroadcastRows();
+  } else if(e.key === HD_KEY_RESTORE){
+    var data = null;
+    try { data = JSON.parse(e.newValue); } catch(err){ data = null; }
+    if(data && data.ts && (Date.now() - data.ts) < 10000) hdApplyRestore(data);
+  }
+});
+/* Direct one-time read at load, only for the case the carrier widget already
+   wrote HD_KEY_RESTORE before this widget's own script got here (so no
+   "storage" event will ever fire for it in this document) - guarded by the
+   same ~10s freshness window so a leftover from a much earlier session can
+   never be mistaken for this submission's own data. */
+(function(){
+  var raw = null;
+  try { raw = localStorage.getItem(HD_KEY_RESTORE); } catch(e){}
+  if(!raw) return;
+  var data = null;
+  try { data = JSON.parse(raw); } catch(e){ data = null; }
+  if(data && data.ts && (Date.now() - data.ts) < 10000) hdApplyRestore(data);
+})();
+
 window.addEventListener("resize", fit);
 })();
 </script>
