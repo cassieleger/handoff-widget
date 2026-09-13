@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -144,10 +144,19 @@ $("add").addEventListener("click", function(){
 /* ---- Jotform bridge (absent when the file is opened on its own) ---- */
 var JF = window.JFCustomWidget;
 var lastHeight = 0;
-function fit(){
+/* The actual resize call, kept separate from fit() so page load/ready can
+   resize immediately while typing goes through the debounced fit() below. */
+function fitNow(){
   if(!JF || !JF.requestFrameResize) return;
   var h = Math.ceil(document.body.scrollHeight) + 8;
   if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
+}
+/* Debounced: resizing the iframe on every keystroke was making the page
+   jump/scroll while typing. Only resize once input pauses for a moment. */
+var fitTimer = null;
+function fit(){
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(fitNow, 250);
 }
 var syncTimer = null;
 function sync(){
@@ -161,7 +170,7 @@ function sync(){
 lines = [blank()];
 render();
 if(JF){
-  JF.subscribe("ready", function(){ fit(); });
+  JF.subscribe("ready", function(){ fitNow(); });
   JF.subscribe("submit", function(){
     JF.sendSubmit({ valid: true, value: lastValue });
   });
@@ -171,3 +180,4 @@ window.addEventListener("resize", fit);
 </script>
 </body>
 </html>
+
