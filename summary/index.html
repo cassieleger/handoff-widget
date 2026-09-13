@@ -33,10 +33,9 @@ body{background:var(--surface); color:var(--ink-2);
 .count{padding:12px 14px; border-left:1px solid var(--line)}
 .count-v{font-size:22px; font-weight:600; color:var(--ink); margin-top:3px; font-variant-numeric:tabular-nums}
 .count-wide{padding:12px 18px 14px; border-left:none; border-bottom:1px solid var(--line)}
+.count-wide:last-child{border-bottom:none}
 .count-wide .breakdown{margin-top:7px; font-size:12.5px; color:var(--ink-2)}
 .count-wide .breakdown .num{font-weight:600; color:var(--ink)}
-.count-row{display:grid; grid-template-columns:repeat(3,1fr)}
-.count-row .count:first-child{border-left:none}
 .stale{font-size:11px; color:var(--ink-3); padding:8px 18px; border-top:1px solid var(--line); background:var(--sunken)}
 </style>
 </head>
@@ -53,10 +52,10 @@ body{background:var(--surface); color:var(--ink-2);
       <div class="count-v num" id="totalStaff">0</div>
       <div class="breakdown">CG/IC/PT&nbsp;<span class="num" id="cg">0</span> &middot; LVN/RN&nbsp;<span class="num" id="clin">0</span></div>
     </div>
-    <div class="count-row">
-      <div class="count"><div class="lbl">Total call-offs</div><div class="count-v num" id="totalCallOffs">0</div></div>
-      <div class="count"><div class="lbl">Call off &lt;48h</div><div class="count-v num" id="callOff">0</div></div>
-      <div class="count"><div class="lbl">NCNS</div><div class="count-v num" id="ncns">0</div></div>
+    <div class="count count-wide">
+      <div class="lbl">Total call-offs</div>
+      <div class="count-v num" id="totalCallOffs">0</div>
+      <div class="breakdown">Call off &lt;48h&nbsp;<span class="num" id="callOff">0</span> &middot; NCNS&nbsp;<span class="num" id="ncns">0</span></div>
     </div>
   </div>
   <div class="stale" id="hint">Fill in "Shift, GPM &amp; Call-off Log" below — these numbers update live as you go.</div>
