@@ -1,4 +1,4 @@
-﻿﻿﻿﻿<!doctype html>
+﻿﻿﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -327,87 +327,56 @@ function callTotals(){
 
 /* ============ combined submission ============ */
 var lastValue = "";
-var OT_LABELS = { facility: "Facility", regular: "Regular" };
-function esc(s){
-  return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-/* Clean HTML tables for the notification email (replaces the old plain-text
-   bullet list). The Daily Summary Board numbers now live in their own widget's
-   email row instead of being repeated here — see summary/index.html. */
-var TABLE_STYLE = "width:100%; border-collapse:collapse; font-family:'Work Sans',Helvetica,Arial,sans-serif; font-size:12.5px;";
-var TH_STYLE = "text-align:left; padding:8px 10px; background-color:#F7F3ED; color:#79716B; font-size:10px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; border-bottom:1px solid #E3DBD0;";
-var TD_STYLE = "padding:8px 10px; border-bottom:1px solid #EFE9E0; color:#302F2F; vertical-align:top;";
-var SECTION_LABEL_STYLE = "font-family:'Work Sans',Helvetica,Arial,sans-serif; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#4A7272; margin:0 0 6px;";
-
-function shiftsTableHtml(){
-  var rows = shiftLines.map(function(L){
-    var c = computeShift(L);
-    if(!c.counted) return "";
-    var hoursText = c.totalHrs > 0 ? fmtHrs(c.totalHrs) + "h" : "—";
-    var otText = OT_LABELS[L.otRule] || "—";
-    var gpmText = c.ready ? pct(c.gpm) : "—";
-    return "<tr>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(fmtDate(L.shiftDate) || "—")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.client || "Client")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.cg || "Unassigned")+" ("+esc(L.disc)+")</td>"
-      + "<td style=\""+TD_STYLE+"\">"+hoursText+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+otText+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+money(n(L.bill))+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+money(n(L.pay))+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+gpmText+"</td>"
-      + "</tr>";
-  }).join("");
-  if(!rows) return "";
-  return "<div style=\""+SECTION_LABEL_STYLE+"\">Shift(s) Staffed</div>"
-    + "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\""+TABLE_STYLE+"\"><tbody>"
-    + "<tr>"
-      + "<th style=\""+TH_STYLE+"\">Date</th>"
-      + "<th style=\""+TH_STYLE+"\">Client</th>"
-      + "<th style=\""+TH_STYLE+"\">Employee</th>"
-      + "<th style=\""+TH_STYLE+"\">Hours</th>"
-      + "<th style=\""+TH_STYLE+"\">OT Rule</th>"
-      + "<th style=\""+TH_STYLE+"\">Bill/hr</th>"
-      + "<th style=\""+TH_STYLE+"\">Pay/hr</th>"
-      + "<th style=\""+TH_STYLE+"\">GPM</th>"
-    + "</tr>"
-    + rows
-    + "</tbody></table>";
-}
-
-function callsTableHtml(){
-  var rows = callLines.map(function(L){
-    if(!callHasContent(L)) return "";
-    return "<tr>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.type || "—")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.client || "Client")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.emp || "Unassigned")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.shiftTime || "—")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.callTime || "—")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.reason || "—")+"</td>"
-      + "</tr>";
-  }).join("");
-  if(!rows) return "";
-  return "<div style=\""+SECTION_LABEL_STYLE+" margin-top:16px;\">Call-Offs / NCNS</div>"
-    + "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\""+TABLE_STYLE+"\"><tbody>"
-    + "<tr>"
-      + "<th style=\""+TH_STYLE+"\">Type</th>"
-      + "<th style=\""+TH_STYLE+"\">Client</th>"
-      + "<th style=\""+TH_STYLE+"\">Employee</th>"
-      + "<th style=\""+TH_STYLE+"\">Shift</th>"
-      + "<th style=\""+TH_STYLE+"\">Called Off</th>"
-      + "<th style=\""+TH_STYLE+"\">Reason</th>"
-    + "</tr>"
-    + rows
-    + "</tbody></table>";
-}
-
 function submittedValue(st, ct){
-  var parts = [];
-  var shiftsHtml = shiftsTableHtml();
-  var callsHtml = callsTableHtml();
-  if(shiftsHtml) parts.push(shiftsHtml);
-  if(callsHtml) parts.push(callsHtml);
-  return parts.join("<div style=\"height:14px; line-height:14px; font-size:0;\">&nbsp;</div>");
+  var out = [];
+  out.push("Personal daily GPM: " + (st.blended === null ? "—" : pct(st.blended)) + " blended");
+  out.push("CG/IC/PT shifts staffed: " + st.cg + "   LVN/RN shifts staffed: " + st.clin);
+  out.push("Call off <48 hours: " + ct.callOff + "   NCNS: " + ct.ncns);
+
+  if(st.count){
+    out.push("");
+    out.push("SHIFT(S) STAFFED");
+    shiftLines.forEach(function(L){
+      var c = computeShift(L);
+      if(!c.counted) return;
+      var otBits = [];
+      if(c.hours.ot1) otBits.push(fmtHrs(c.hours.ot1) + "h @1.5x");
+      if(c.hours.ot2) otBits.push(fmtHrs(c.hours.ot2) + "h @2x");
+      var hoursText = fmtHrs(c.totalHrs) + "h" + (otBits.length ? " (" + otBits.join(", ") + " OT)" : "");
+      var whenParts = [];
+      if(L.shiftDate) whenParts.push(fmtDate(L.shiftDate));
+      var startStr = fmtTime12(L.startHour, L.startMin, L.startAmPm);
+      var endStr = fmtTime12(L.endHour, L.endMin, L.endAmPm);
+      if(startStr || endStr) whenParts.push((startStr||"?") + "-" + (endStr||"?"));
+      var whenText = whenParts.length ? whenParts.join(" ") + " — " : "";
+      var notes = [];
+      if(L.baseRate) notes.push("Base rate: " + L.baseRate);
+      if(L.pocUpdated) notes.push("POC updated: " + L.pocUpdated);
+      if(L.prepCall) notes.push("Prep call: " + L.prepCall);
+      if(L.fsfuTask) notes.push("FSFU: " + L.fsfuTask);
+      if(L.rnPad) notes.push("RN Pad: " + L.rnPad);
+      out.push("• " + whenText + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ")  "
+        + hoursText
+        + "  bill " + money(n(L.bill))
+        + " / pay " + money(n(L.pay))
+        + "  →  GPM " + (c.ready ? pct(c.gpm) : "—")
+        + (notes.length ? "  [" + notes.join(", ") + "]" : ""));
+    });
+  }
+
+  if(ct.count){
+    out.push("");
+    out.push("CALL-OFFS / NCNS");
+    callLines.forEach(function(L){
+      if(!callHasContent(L)) return;
+      out.push("• [" + (L.type || "Unspecified") + "] " + (L.client || "Client") + " — " + (L.emp || "Unassigned")
+        + (L.shiftTime ? "  shift " + L.shiftTime : "")
+        + (L.callTime ? "  called off " + L.callTime : "")
+        + (L.reason ? "  — " + L.reason : ""));
+    });
+  }
+
+  return out.join("\n");
 }
 
 function recalc(){
@@ -470,9 +439,10 @@ var lastHeight = 0;
    load, a blocked-submit banner appearing) can resize immediately, while
    typing goes through the debounced fit() below instead. */
 function fitNow(){
-  if(!JF || !JF.requestFrameResize) return;
-  var h = Math.ceil(document.body.scrollHeight) + 8;
-  if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
+  /* TEMP DIAGNOSTIC 2 (2026-09-12, re-test): disabled again to properly
+     confirm (with verified cache-busted deploy) whether resize is the cause
+     of the infinite-growing-space bug. */
+  return;
 }
 /* Debounced: recalc() (and therefore fit()) runs on every keystroke as rows'
    warning banners show/hide, and resizing the iframe on every single
@@ -511,7 +481,6 @@ window.addEventListener("resize", fit);
 </script>
 </body>
 </html>
-
 
 
 
