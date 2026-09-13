@@ -169,10 +169,18 @@ function sync(){
    generic Iframe Embed field type doesn't reliably fire. */
 lines = [blank()];
 render();
+/* CRITICAL: subscribe to "ready" as the very first thing, and nest "submit"
+   INSIDE the ready callback rather than as a sibling subscription — Jotform's
+   own troubleshooting docs warn a sibling "submit" subscription can silently
+   never fire. (2026-09-13: confirmed via a temporary alert() diagnostic that
+   this exact structure was why this field's submitted value always came back
+   empty, even though the visible display worked fine.) */
 if(JF){
-  JF.subscribe("ready", function(){ fitNow(); });
-  JF.subscribe("submit", function(){
-    JF.sendSubmit({ valid: true, value: lastValue });
+  JF.subscribe("ready", function(){
+    fitNow();
+    JF.subscribe("submit", function(){
+      JF.sendSubmit({ valid: true, value: lastValue });
+    });
   });
 }
 window.addEventListener("resize", fit);
