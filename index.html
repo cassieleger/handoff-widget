@@ -157,18 +157,21 @@ function shiftAllFilled(L){
     L.baseRate && L.prepCall && L.pocUpdated && L.fsfuTask && L.rnPad);
 }
 function computeShift(L){
-  var pay = n(L.pay), bill = n(L.bill);
+  var pay = n(L.pay), bill = n(L.bill), bonus = n(L.bonus);
   var totalHrs = hoursFromParts(L.startHour, L.startMin, L.startAmPm, L.endHour, L.endMin, L.endAmPm);
   var h = splitHours(totalHrs, L.otRule);
   var ready = shiftAllFilled(L) && totalHrs>0;
   var revenue = ready ? totalHrs*bill : 0;
-  var labor   = ready ? (h.reg*pay + h.ot1*pay*OT1_MULT + h.ot2*pay*OT2_MULT) : 0;
+  /* Bonus is optional (never required, defaults to 0 when left blank via n()'s
+     isFinite check) but still counts as extra labor cost against this shift's
+     own GPM once the row is otherwise ready. */
+  var labor   = ready ? (h.reg*pay + h.ot1*pay*OT1_MULT + h.ot2*pay*OT2_MULT + bonus) : 0;
   return { revenue:revenue, labor:labor, gp:revenue-labor,
            gpm: ready ? (revenue-labor)/revenue*100 : 0,
            ready: ready, counted: revenue>0 || labor>0, hours:h, totalHrs:totalHrs };
 }
 function blankShift(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:"",
-  startHour:"", startMin:"", startAmPm:"", endHour:"", endMin:"", endAmPm:"", otRule:"", bill:"", pay:"",
+  startHour:"", startMin:"", startAmPm:"", endHour:"", endMin:"", endAmPm:"", otRule:"", bill:"", pay:"", bonus:"",
   baseRate:"", pocUpdated:"", prepCall:"", fsfuTask:"", rnPad:""}; }
 /* Has anything at all been entered on this shift row yet? Used only to decide
    whether to show the "missing info" warning (no point nagging on a fresh
@@ -176,7 +179,7 @@ function blankShift(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:""
 function shiftStarted(L){
   return !!(L.shiftDate || L.client || L.cg || L.disc ||
     L.startHour || L.startMin || L.startAmPm || L.endHour || L.endMin || L.endAmPm ||
-    L.otRule || n(L.bill) || n(L.pay) ||
+    L.otRule || n(L.bill) || n(L.pay) || n(L.bonus) ||
     L.baseRate || L.prepCall || L.pocUpdated || L.fsfuTask || L.rnPad);
 }
 
@@ -213,6 +216,7 @@ function nodeShift(L){
       '<div class="field"><label>Bill $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="bill" placeholder="0.00"></div>'+
       '<div class="field"><label>Pay $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="pay" placeholder="0.00"></div>'+
       '<div class="field"><label>Base Rate?</label><select data-k="baseRate"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
+      '<div class="field"><label>Bonus $ (optional)</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="bonus" placeholder="0.00"></div>'+
     '</div>'+
     '<div class="line-fields confirm-fields">'+
       '<div class="field"><label>Prep Call Completed (if appl.)</label><select data-k="prepCall"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
@@ -377,7 +381,8 @@ function submittedValue(st, ct){
       /* Numbered so multiple staff/shifts are clearly separate entries, one
          clearly-labeled line per fact instead of one long run-on line. */
       out.push(shiftNum + ". " + (L.client || "Client") + "  —  " + (L.cg || "Unassigned") + " (" + L.disc + ")");
-      out.push("    " + whenText + " (" + hoursText + ")  OT: " + otText + "  Bill $" + money(n(L.bill)) + "/hr  Pay $" + money(n(L.pay)) + "/hr  GPM " + (c.ready ? pct(c.gpm) : "—"));
+      var bonusText = n(L.bonus) > 0 ? "  Bonus $" + money(n(L.bonus)) : "";
+      out.push("    " + whenText + " (" + hoursText + ")  OT: " + otText + "  Bill $" + money(n(L.bill)) + "/hr  Pay $" + money(n(L.pay)) + "/hr" + bonusText + "  GPM " + (c.ready ? pct(c.gpm) : "—"));
       out.push("    Base Rate: " + (L.baseRate || "—") + "  Prep Call: " + (L.prepCall || "—") + "  POC Updated: " + (L.pocUpdated || "—") + "  FSFU: " + (L.fsfuTask || "—") + "  RN Pad: " + (L.rnPad || "—"));
       out.push("");
     });
