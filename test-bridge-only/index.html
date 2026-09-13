@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Work+Sans:wght@400;500;600&display=swap">
+</head>
+<body style="margin:0; height:900px; background:#eee; font-family:'Work Sans',sans-serif; padding:20px; box-sizing:border-box;">
+<h1>Bridge-only test — JFCustomWidget script + fonts loaded, but no resize call, no application logic.</h1>
+<script>
+var JF = window.JFCustomWidget;
+if(JF){
+  JF.subscribe("ready", function(){});
+  JF.subscribe("submit", function(){ JF.sendSubmit({ valid: true, value: "" }); });
+}
+</script>
+</body>
+</html>
