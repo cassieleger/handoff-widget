@@ -1,0 +1,157 @@
+﻿﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Summary Board — Jotform widget</title>
+<script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Work+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --surface:#FFFFFF; --sunken:#F7F3ED;
+  --ink:#122834; --ink-2:#414651; --ink-3:#79716B;
+  --line:#E3DBD0;
+  --accent:#4A7272; --accent-soft:#E4EBE8;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--surface); color:var(--ink-2);
+  font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif; font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; padding:2px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.lbl{font-size:10px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3)}
+
+.board{display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line);
+  border-top:3px solid var(--accent); border-radius:4px; overflow:hidden}
+.hero{padding:16px 18px; background:var(--accent-soft)}
+.hero .lbl{color:var(--accent)}
+.hero-v{font-family:"Playfair Display",Georgia,serif; font-size:42px; font-weight:600; line-height:1;
+  color:var(--ink); margin-top:8px; font-variant-numeric:tabular-nums; letter-spacing:-.02em}
+.hero-v span{font-family:"Work Sans",sans-serif; font-size:.35em; color:var(--ink-3); margin-left:3px}
+.counts{display:flex; flex-direction:column; border-top:1px solid var(--line)}
+.count{padding:12px 14px; border-left:1px solid var(--line)}
+.count-v{font-size:22px; font-weight:600; color:var(--ink); margin-top:3px; font-variant-numeric:tabular-nums}
+.count-wide{padding:12px 18px 14px; border-left:none; border-bottom:1px solid var(--line)}
+.count-wide:last-child{border-bottom:none}
+.count-wide .breakdown{margin-top:7px; font-size:12.5px; color:var(--ink-2)}
+.count-wide .breakdown .num{font-weight:600; color:var(--ink)}
+.stale{font-size:11px; color:var(--ink-3); padding:8px 18px; border-top:1px solid var(--line); background:var(--sunken)}
+</style>
+</head>
+<body>
+
+<div class="board">
+  <div class="hero">
+    <div class="lbl">Personal daily GPM %</div>
+    <div class="hero-v num" id="gpm">&mdash;<span>%</span></div>
+  </div>
+  <div class="counts">
+    <div class="count count-wide">
+      <div class="lbl">Total Staff(s)</div>
+      <div class="count-v num" id="totalStaff">0</div>
+      <div class="breakdown">CG/IC/PT&nbsp;<span class="num" id="cg">0</span> &middot; LVN/RN&nbsp;<span class="num" id="clin">0</span></div>
+    </div>
+    <div class="count count-wide">
+      <div class="lbl">Total Call-Off/NCNS</div>
+      <div class="count-v num" id="totalCallOffs">0</div>
+      <div class="breakdown">Call off &lt;48h&nbsp;<span class="num" id="callOff">0</span> &middot; NCNS&nbsp;<span class="num" id="ncns">0</span></div>
+    </div>
+  </div>
+  <div class="stale" id="hint">Fill in "Shift, GPM &amp; Call-off Log" below — these numbers update live as you go.</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+var KEY = "lcHandoffSummaryCCM";
+var lastSeenTs = 0;
+
+function pct(v){ return v.toFixed(1) + "%"; }
+
+function render(){
+  var raw = null;
+  try { raw = localStorage.getItem(KEY); } catch(e){}
+  var data = null;
+  if(raw){ try { data = JSON.parse(raw); } catch(e){ data = null; } }
+
+  if(!data){
+    $("gpm").innerHTML = "&mdash;<span>%</span>";
+    ["cg","clin","totalStaff","callOff","ncns","totalCallOffs"].forEach(function(id){ $(id).textContent = "0"; });
+    $("hint").textContent = 'Fill in "Shift, GPM & Call-off Log" below — these numbers update live as you go.';
+    return;
+  }
+
+  $("gpm").innerHTML = (data.gpm == null ? "—" : data.gpm.toFixed(1)) + "<span>%</span>";
+  $("cg").textContent = String(data.cg || 0);
+  $("clin").textContent = String(data.clin || 0);
+  $("totalStaff").textContent = String(data.totalStaff || 0);
+  $("callOff").textContent = String(data.callOff || 0);
+  $("ncns").textContent = String(data.ncns || 0);
+  $("totalCallOffs").textContent = String(data.totalCallOffs || 0);
+  $("hint").textContent = "Live from the shift/call-off log below.";
+  lastSeenTs = data.ts || lastSeenTs;
+}
+
+/* Builds a always-non-empty summary string for the submitted value, so this
+   read-only display field's row never gets hidden from the notification
+   email by Jotform's "hide empty fields" setting, even on a 0-shift day. */
+function submitText(){
+  return [
+    "Personal daily GPM: " + $("gpm").textContent,
+    "",
+    "Total Staff(s): " + $("totalStaff").textContent,
+    "    CG/IC/PT: " + $("cg").textContent,
+    "    LVN/RN: " + $("clin").textContent,
+    "",
+    "Total Call-Off/NCNS: " + $("totalCallOffs").textContent,
+    "    Call off <48h: " + $("callOff").textContent,
+    "    NCNS: " + $("ncns").textContent
+  ].join("\n");
+}
+
+/* "storage" fires in other same-origin windows/iframes when localStorage changes elsewhere. */
+window.addEventListener("storage", function(e){
+  if(e.key === KEY) render();
+});
+/* Poll as a fallback in case the storage event doesn't reach this frame reliably. */
+setInterval(render, 1000);
+
+/* ---- Jotform bridge (absent when the file is opened on its own) ---- */
+var JF = window.JFCustomWidget;
+var lastHeight = 0;
+/* Only true once "ready" has genuinely fired — see index.html's matching
+   comment for why (2026-09-13 investigation into submit never firing). */
+var jfReady = false;
+function fit(){
+  if(!jfReady || !JF || !JF.requestFrameResize) return;
+  var h = Math.ceil(document.body.scrollHeight) + 8;
+  if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
+}
+/* Render immediately at script load rather than waiting on the "ready" event
+   — that event can take a moment (or not fire reliably at all for this
+   widget type), and waiting on it left the hardcoded placeholder text
+   visible for a beat before flipping to the real state. */
+render();
+/* CRITICAL: subscribe to "ready" as the very first thing, and nest "submit"
+   INSIDE the ready callback rather than as a sibling subscription — Jotform's
+   own troubleshooting docs warn a sibling "submit" subscription can silently
+   never fire. (2026-09-13: confirmed via a temporary alert() diagnostic that
+   this exact structure was why this field's submitted value always came back
+   empty, even though the visible display worked fine.) */
+if(JF){
+  JF.subscribe("ready", function(){
+    jfReady = true;
+    render();
+    fit();
+    JF.subscribe("submit", function(){ JF.sendSubmit({ valid: true, value: submitText() }); });
+  });
+}
+window.addEventListener("resize", fit);
+})();
+</script>
+</body>
+</html>
+
+
