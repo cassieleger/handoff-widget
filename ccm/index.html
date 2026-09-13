@@ -1,0 +1,704 @@
+﻿﻿﻿﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shift Ledger, GPM &amp; Call-off Log — Jotform widget</title>
+<script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Work+Sans:wght@400;500;600&display=swap">
+<style>
+/* Single light theme on purpose: this renders inside a Jotform page. */
+:root{
+  --surface:#FFFFFF; --surface-2:#EFE9E0; --sunken:#F7F3ED;
+  --ink:#122834; --ink-2:#414651; --ink-3:#79716B;
+  --line:#E3DBD0; --line-2:#D3C9BB;
+  --accent:#4A7272; --accent-soft:#E4EBE8;
+  --gold:#B07C23; --gold-soft:#F8EEDC;
+  --red:#96382F; --red-soft:#F4E1DD;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--surface); color:var(--ink-2);
+  font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif; font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; padding:2px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+label,.lbl{font-size:10px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3)}
+input,select,textarea{font-family:inherit; font-size:14.5px; color:var(--ink); background:var(--surface);
+  border:1px solid var(--line-2); border-radius:4px; padding:8px 10px; width:100%; min-width:0}
+textarea{resize:vertical; min-height:38px}
+input[type="number"]{font-variant-numeric:tabular-nums}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+select{appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:calc(100% - 16px) calc(50% + 1px), calc(100% - 11px) calc(50% + 1px);
+  background-size:5px 5px,5px 5px; background-repeat:no-repeat; padding-right:30px}
+
+/* section separation between the two entry sections below (numbers live in the separate Daily Summary Board widget) */
+.section-label{font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--ink-3); margin:36px 0 12px; padding-top:16px; border-top:2px solid var(--accent)}
+.section-label.first{margin-top:0; padding-top:0; border-top:none}
+
+/* entry lines (shared look for both shift rows and call-off rows) */
+.line{border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-bottom:10px; background:var(--surface)}
+.line-id{display:grid; gap:9px; padding:11px 12px; align-items:end}
+.line-id.shift-id{grid-template-columns:1fr 1.2fr 1.2fr 165px 34px}
+.line-id.call-id{grid-template-columns:170px 1.2fr 1.2fr 34px}
+.line-fields{display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:12px 10px; padding:2px 12px 14px}
+.line-fields.call-fields{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.line-fields.time-fields{grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); padding-bottom:2px}
+.line-fields.rate-fields{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.line-fields.confirm-fields{grid-template-columns:repeat(2,1fr);
+  border-top:1px solid var(--line); margin-top:2px; padding-top:14px}
+.field{display:flex; flex-direction:column; gap:5px; min-width:0}
+.field-time{min-width:0}
+.time-group{display:flex; gap:4px}
+.time-group select,.time-group input{width:auto; flex:1 1 0; min-width:0; padding:8px 4px; text-align:center}
+.line-out{display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:var(--accent-soft); border-top:1px solid var(--line); padding:9px 12px}
+.line-out .lbl{color:var(--accent)}
+.line-out .v{font-size:18px; font-weight:600; color:var(--accent); font-variant-numeric:tabular-nums}
+.line-warn{display:flex; align-items:center; gap:7px; background:var(--gold-soft); color:var(--gold);
+  font-size:12.5px; font-weight:600; padding:8px 12px; border-top:1px solid var(--line)}
+.line-warn[hidden]{display:none}
+#restoreNote{display:flex; align-items:center; gap:7px; background:var(--gold-soft); color:var(--gold);
+  font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:4px; margin-bottom:14px}
+#restoreNote[hidden]{display:none}
+.field[hidden]{display:none}
+.del{background:transparent; border:1px solid var(--line-2); color:var(--ink-3); border-radius:4px;
+  height:36px; width:34px; cursor:pointer; font-size:16px; line-height:1; font-family:inherit}
+.del:hover{border-color:var(--red); color:var(--red); background:var(--red-soft)}
+.add{width:100%; background:transparent; border:1px dashed var(--line-2); color:var(--ink-2);
+  border-radius:4px; padding:10px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit}
+.add:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+
+@media (max-width:620px){
+  .line-id.shift-id{grid-template-columns:1fr 34px}
+  .line-id.shift-id .f-shift,.line-id.shift-id .f-cg,.line-id.shift-id .f-disc{grid-column:1 / 2}
+  .line-id.call-id{grid-template-columns:1fr 34px}
+  .line-id.call-id .f-type,.line-id.call-id .f-client,.line-id.call-id .f-emp{grid-column:1 / 2}
+  .line-fields.confirm-fields{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="restoreNote" hidden>&#9888; Restored from this submission.</div>
+
+<div class="section-label first">Call-offs &amp; NCNS</div>
+<div id="callLines"></div>
+<button type="button" class="add" id="addCall">+ Add Call-off/NCNS</button>
+
+<div class="section-label">Shifts Staffed</div>
+<div id="shiftLines"></div>
+<button type="button" class="add" id="addShift">+ Add shift</button>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- shared helpers ---------- */
+var $ = function(id){ return document.getElementById(id); };
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function n(v){ var x = parseFloat(v); return isFinite(x) ? x : 0; }
+function pct(v){ return v.toFixed(1) + "%"; }
+function money(v){ return "$" + v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtHrs(v){ var r = Math.round(v*100)/100; return (r % 1 === 0 ? r.toFixed(0) : String(r)); }
+function pad2(v){ v = parseInt(v,10)||0; return (v<10?"0":"")+v; }
+function fmtTime12(h,m,ap){ if(!h) return ""; return h+":"+pad2(m)+(ap||"AM"); }
+function fmtDate(v){
+  if(!v) return "";
+  var p = v.split("-"); if(p.length!==3) return v;
+  return (+p[1]) + "/" + (+p[2]) + "/" + p[0];
+}
+
+/* ============ SHIFTS / GPM ============ */
+var DISC = ["CG","IC","LVN","PT","RN"], CLINICAL = {LVN:1, RN:1};
+var HOURS12 = ["1","2","3","4","5","6","7","8","9","10","11","12"];
+var shiftLines = [], shiftOuts = {};
+var OT1_MULT = 1.5, OT2_MULT = 2;
+
+/* ---- Cross-iframe relay to the separate "handoffData" carrier widget ----
+   That widget holds this session's shiftLines/callLines (and the Call Log
+   widget's lines) as ITS OWN answer instead of this widget appending them to
+   its own text, so the notification email (which only prints merge tags it
+   explicitly references) never has to show them. Same localStorage/"storage"
+   event mechanism the Daily Summary Board widget already uses to read this
+   widget's broadcasts. */
+var HD_SID = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+var HD_KEY_SHIFTS = "lcHandoffRowsShiftsCCM";
+var HD_KEY_RESTORE = "lcHandoffRestoreCCM";
+var HD_KEY_HELLO = "lcHandoffStoreHelloCCM";
+var hdRestoredOnce = false;
+function hdIsPristine(){ return !shiftLines.some(shiftStarted) && !callLines.some(callStarted); }
+function hdBroadcastRows(){
+  try {
+    localStorage.setItem(HD_KEY_SHIFTS, JSON.stringify({ v:1, sid:HD_SID, ts:Date.now(), shiftLines: shiftLines, callLines: callLines }));
+  } catch(e){ /* storage may be unavailable (private mode, blocked) - non-fatal */ }
+}
+/* Only ever called with data that arrived either via a live "storage" event,
+   or via a direct localStorage read at load whose own ts is under ~10s old
+   (the carrier widget just wrote it this same page-load) - see callers below.
+   Never applied if this widget already has anything typed in it, and never
+   applied twice in one page load. */
+function hdApplyRestore(data){
+  if(hdRestoredOnce || !hdIsPristine() || !data) return;
+  var restored = restoreLines(data.shiftLines, data.callLines);
+  if(!restored.shiftLines.length && !restored.callLines.length) return;
+  hdRestoredOnce = true;
+  shiftLines = restored.shiftLines.length ? restored.shiftLines : [blankShift()];
+  callLines = restored.callLines.length ? restored.callLines : [blankCall()];
+  renderShifts();
+  renderCalls();
+  var note = $("restoreNote");
+  if(note){
+    var parts = [];
+    if(restored.shiftLines.length) parts.push(restored.shiftLines.length + (restored.shiftLines.length===1?" shift":" shifts"));
+    if(restored.callLines.length) parts.push(restored.callLines.length + (restored.callLines.length===1?" call-off/NCNS":" call-offs/NCNS"));
+    note.textContent = "⚠ Restored " + parts.join(" and ") + " from this submission.";
+    note.hidden = false;
+  }
+}
+
+/* An end time at or before start is treated as crossing midnight.
+   Nothing computes until both AM/PM sides are actually chosen (no silent AM default). */
+function hoursFromParts(sh, sm, sap, eh, em, eap){
+  if(!sh || !eh || !sap || !eap) return 0;
+  var sMin = (parseInt(sh,10)%12)*60 + (parseInt(sm,10)||0) + (sap==="PM" ? 12*60 : 0);
+  var eMin = (parseInt(eh,10)%12)*60 + (parseInt(em,10)||0) + (eap==="PM" ? 12*60 : 0);
+  var diff = eMin - sMin;
+  if(diff <= 0) diff += 24*60;
+  return diff/60;
+}
+
+/* Regular Overtime Rule: 0-9h normal, anything past 9h at 1.5x.
+   Facility Overtime Rule: 0-8h normal, 8-12h at 1.5x, anything past 12h at 2x.
+   No rule chosen yet: nothing computes (avoids silently assuming Regular). */
+function splitHours(total, rule){
+  total = Math.max(0, total);
+  if(!rule) return { reg:0, ot1:0, ot2:0 };
+  if(rule === "facility"){
+    var reg = Math.min(total, 8);
+    var ot1 = Math.min(Math.max(total - 8, 0), 4);
+    var ot2 = Math.max(total - 12, 0);
+    return { reg:reg, ot1:ot1, ot2:ot2 };
+  }
+  var reg2 = Math.min(total, 9);
+  var ot1b = Math.max(total - 9, 0);
+  return { reg:reg2, ot1:ot1b, ot2:0 };
+}
+
+/* Bill rate is flat for every hour worked (the client isn't billed an OT
+   premium); only the employee's pay gets the tiered OT/double-time multiplier.
+   Nothing computes until literally every box on the row — every text field
+   and every dropdown, not just the ones that feed the math — is filled in.
+   Avoids a misleading GPM (or a row silently entering the staff count) before
+   the row is actually finished. */
+/* Minute boxes are the one field allowed to stay blank — an empty minute is
+   assumed to mean :00, not "incomplete" (hoursFromParts already treats it
+   that way via parseInt(...)||0, so this just matches that in the checklist). */
+function shiftAllFilled(L){
+  return !!(L.shiftDate && L.client && L.cg && L.disc &&
+    L.startHour && L.startAmPm &&
+    L.endHour && L.endAmPm &&
+    L.otRule && n(L.bill) > 0 && n(L.pay) > 0 &&
+    L.baseRate && L.prepCall && L.pocUpdated && L.fsfuTask && L.rnPad &&
+    L.diffHours && (L.diffHours !== "Yes" || (n(L.billHours) > 0 && n(L.payHours) > 0)));
+}
+function computeShift(L){
+  var pay = n(L.pay), bill = n(L.bill), bonus = n(L.bonus);
+  var totalHrs = hoursFromParts(L.startHour, L.startMin, L.startAmPm, L.endHour, L.endMin, L.endAmPm);
+  /* Bill hours and pay hours are usually the same (the actual worked time
+     above) but can be told apart when they legitimately differ — e.g. paid
+     for more hours than billed (travel time, rounding, etc.). Only kicks in
+     when "Bill/Pay Different Hours?" is explicitly Yes and both boxes have a
+     value; otherwise both fall back to the worked hours as before. */
+  var useDiff = L.diffHours === "Yes" && n(L.billHours) > 0 && n(L.payHours) > 0;
+  var billHrs = useDiff ? n(L.billHours) : totalHrs;
+  var payHrs  = useDiff ? n(L.payHours)  : totalHrs;
+  var h = splitHours(payHrs, L.otRule);
+  var ready = shiftAllFilled(L) && totalHrs>0;
+  var revenue = ready ? billHrs*bill : 0;
+  /* Bonus is optional (never required, defaults to 0 when left blank via n()'s
+     isFinite check) but still counts as extra labor cost against this shift's
+     own GPM once the row is otherwise ready. */
+  var labor   = ready ? (h.reg*pay + h.ot1*pay*OT1_MULT + h.ot2*pay*OT2_MULT + bonus) : 0;
+  return { revenue:revenue, labor:labor, gp:revenue-labor,
+           gpm: ready ? (revenue-labor)/revenue*100 : 0,
+           ready: ready, counted: revenue>0 || labor>0, hours:h, totalHrs:totalHrs,
+           useDiff:useDiff, billHrs:billHrs, payHrs:payHrs };
+}
+function blankShift(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:"",
+  startHour:"", startMin:"", startAmPm:"", endHour:"", endMin:"", endAmPm:"", otRule:"", bill:"", pay:"", bonus:"",
+  baseRate:"", pocUpdated:"", prepCall:"", fsfuTask:"", rnPad:"",
+  diffHours:"", billHours:"", payHours:""}; }
+/* Has anything at all been entered on this shift row yet? Used only to decide
+   whether to show the "missing info" warning (no point nagging on a fresh
+   blank row nobody has touched). */
+function shiftStarted(L){
+  return !!(L.shiftDate || L.client || L.cg || L.disc ||
+    L.startHour || L.startMin || L.startAmPm || L.endHour || L.endMin || L.endAmPm ||
+    L.otRule || n(L.bill) || n(L.pay) || n(L.bonus) ||
+    L.baseRate || L.prepCall || L.pocUpdated || L.fsfuTask || L.rnPad ||
+    L.diffHours || n(L.billHours) || n(L.payHours));
+}
+
+function nodeShift(L){
+  var d = document.createElement("div");
+  d.className = "line";
+  var hourOpts = '<option value="">Hr</option>'+HOURS12.map(function(h){ return '<option>'+h+'</option>'; }).join("");
+  d.innerHTML =
+    /* Row 1: identity + when + total hours worked */
+    '<div class="line-id shift-id">'+
+      '<div class="field f-shift"><label>Shift Date</label><input type="date" data-k="shiftDate"></div>'+
+      '<div class="field f-client"><label>Client Name</label><input type="text" data-k="client" placeholder="First & Last Name"></div>'+
+      '<div class="field f-cg"><label>Employee</label><input type="text" data-k="cg" placeholder="First & Last Name"></div>'+
+      '<div class="field f-disc"><label>Employee Type</label><select data-k="disc"><option value="">Please Select</option>'+
+        DISC.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
+      '<button type="button" class="del" aria-label="Remove shift">&times;</button>'+
+    '</div>'+
+    '<div class="line-fields time-fields">'+
+      '<div class="field field-time"><label>Shift Start</label><div class="time-group">'+
+        '<select data-k="startHour">'+hourOpts+'</select>'+
+        '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="startMin" placeholder=":00">'+
+        '<select data-k="startAmPm"><option value="">--</option><option>AM</option><option>PM</option></select>'+
+      '</div></div>'+
+      '<div class="field field-time"><label>Shift End</label><div class="time-group">'+
+        '<select data-k="endHour">'+hourOpts+'</select>'+
+        '<input type="number" min="0" max="59" step="1" inputmode="numeric" data-k="endMin" placeholder=":00">'+
+        '<select data-k="endAmPm"><option value="">--</option><option>AM</option><option>PM</option></select>'+
+      '</div></div>'+
+    '</div>'+
+    '<div class="line-fields rate-fields">'+
+      '<div class="field"><label>OT Rule</label><select data-k="otRule"><option value="">Please Select</option>'+
+        '<option value="facility">Facility Overtime Rule</option>'+
+        '<option value="regular">Regular Overtime Rule</option>'+
+      '</select></div>'+
+      '<div class="field"><label>Bill $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="bill" placeholder="0.00"></div>'+
+      '<div class="field"><label>Pay $/hr</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="pay" placeholder="0.00"></div>'+
+      '<div class="field"><label>Base Rate?</label><select data-k="baseRate"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
+      '<div class="field"><label>Bonus $ (optional)</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="bonus" placeholder="0.00"></div>'+
+      '<div class="field"><label>Bill/Pay Different Hours?</label><select data-k="diffHours"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
+      '<div class="field" data-o="billBox" hidden><label>Bill Hours</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="billHours" placeholder="0.00"></div>'+
+      '<div class="field" data-o="payBox" hidden><label>Pay Hours</label><input type="number" step="0.01" min="0" inputmode="decimal" data-k="payHours" placeholder="0.00"></div>'+
+    '</div>'+
+    '<div class="line-fields confirm-fields">'+
+      '<div class="field"><label>Prep Call Completed (if appl.)</label><select data-k="prepCall"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
+      '<div class="field"><label>POC Updated?</label><select data-k="pocUpdated"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
+      '<div class="field"><label>FSFU Task in WS (if appl.)</label><select data-k="fsfuTask"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
+      '<div class="field"><label>Nurse Assigned in RN Pad? (if appl.)</label><select data-k="rnPad"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
+    '</div>'+
+    '<div class="line-warn" data-o="warn" hidden>&#9888; Missing info above — won\'t update your Daily Summary Board totals until all fields are filled out.</div>'+
+    '<div class="line-out">'+
+      '<div><span class="lbl">Hours</span> <span class="v" data-o="hrs">&mdash;</span></div>'+
+      '<div><span class="lbl">GPM for this shift</span> <span class="v" data-o="gpm">&mdash;</span></div>'+
+    '</div>';
+
+  d.querySelectorAll("[data-k]").forEach(function(inp){
+    var k = inp.getAttribute("data-k");
+    inp.id = "f-"+L.id+"-"+k;
+    inp.value = L[k] == null ? "" : L[k];
+    var h = function(){ L[k] = inp.value; recalc(); };
+    inp.addEventListener("input", h); inp.addEventListener("change", h);
+  });
+  d.querySelector(".del").addEventListener("click", function(){
+    shiftLines = shiftLines.filter(function(x){ return x.id !== L.id; });
+    if(!shiftLines.length) shiftLines.push(blankShift());
+    renderShifts();
+  });
+  shiftOuts[L.id] = { gpm: d.querySelector('[data-o="gpm"]'), hrs: d.querySelector('[data-o="hrs"]'), warn: d.querySelector('[data-o="warn"]'),
+    billBox: d.querySelector('[data-o="billBox"]'), payBox: d.querySelector('[data-o="payBox"]') };
+  return d;
+}
+
+function renderShifts(){
+  var host = $("shiftLines"); host.textContent = ""; shiftOuts = {};
+  shiftLines.forEach(function(L){ host.appendChild(nodeShift(L)); });
+  recalc();
+}
+
+function shiftTotals(){
+  var rev=0, lab=0, cnt=0, cg=0, clin=0;
+  shiftLines.forEach(function(L){
+    var c = computeShift(L);
+    rev+=c.revenue; lab+=c.labor;
+    if(c.counted){
+      if(c.revenue>0) cnt++;
+      if(L.disc){ if(CLINICAL[L.disc]) clin++; else cg++; }
+    }
+  });
+  return { rev:rev, lab:lab, gp:rev-lab, blended: rev>0 ? (rev-lab)/rev*100 : null,
+           count:cnt, cg:cg, clin:clin };
+}
+
+/* ============ CALL-OFFS / NCNS ============ */
+var CALL_TYPES = ["Call off <48 hours","NCNS"];
+var callLines = [], callOuts = {};
+
+function blankCall(){ return {id:uid(), type:"", client:"", emp:"", callTime:"", shiftTime:"", reason:""}; }
+/* Only counts once every box on the row is filled in — a half-filled row
+   doesn't get silently folded into the Call off/NCNS numbers. */
+function callHasContent(L){ return !!(L.type && L.client && L.emp && L.callTime && L.shiftTime && L.reason); }
+/* Has anything at all been entered on this call-off row yet? Same idea as
+   shiftStarted — only used to decide whether to show the warning. */
+function callStarted(L){ return !!(L.type || L.client || L.emp || L.callTime || L.shiftTime || L.reason); }
+
+function nodeCall(L){
+  var d = document.createElement("div");
+  d.className = "line";
+  d.innerHTML =
+    '<div class="line-id call-id">'+
+      '<div class="field f-type"><label>Type</label><select data-k="type"><option value="">Please Select</option>'+
+        CALL_TYPES.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
+      '<div class="field f-client"><label>Client Name</label><input type="text" data-k="client" placeholder="First & Last Name"></div>'+
+      '<div class="field f-emp"><label>Employee</label><input type="text" data-k="emp" placeholder="First & Last Name"></div>'+
+      '<button type="button" class="del" aria-label="Remove entry">&times;</button>'+
+    '</div>'+
+    '<div class="line-fields call-fields">'+
+      '<div class="field"><label>Date/Time of Call Off</label><input type="text" data-k="callTime" placeholder="e.g. 3/12 6:45am"></div>'+
+      '<div class="field"><label>Shift Date/Time</label><input type="text" data-k="shiftTime" placeholder="e.g. 3/12 7a-3p"></div>'+
+      '<div class="field"><label>Reason</label><textarea data-k="reason" rows="1" placeholder="Reason"></textarea></div>'+
+    '</div>'+
+    '<div class="line-warn" data-o="warn" hidden>&#9888; Missing info above — won\'t update your Daily Summary Board totals until all fields are filled out.</div>';
+
+  d.querySelectorAll("[data-k]").forEach(function(inp){
+    var k = inp.getAttribute("data-k");
+    inp.id = "f-"+L.id+"-"+k;
+    inp.value = L[k] == null ? "" : L[k];
+    var h = function(){ L[k] = inp.value; recalc(); };
+    inp.addEventListener("input", h); inp.addEventListener("change", h);
+  });
+  d.querySelector(".del").addEventListener("click", function(){
+    callLines = callLines.filter(function(x){ return x.id !== L.id; });
+    if(!callLines.length) callLines.push(blankCall());
+    renderCalls();
+  });
+  callOuts[L.id] = { warn: d.querySelector('[data-o="warn"]') };
+  return d;
+}
+
+function renderCalls(){
+  var host = $("callLines"); host.textContent = ""; callOuts = {};
+  callLines.forEach(function(L){ host.appendChild(nodeCall(L)); });
+  recalc();
+}
+
+function callTotals(){
+  var c=0, nc=0, counted=0;
+  callLines.forEach(function(L){
+    if(!callHasContent(L)) return;
+    counted++;
+    if(L.type === "NCNS") nc++;
+    else if(L.type === CALL_TYPES[0]) c++;
+  });
+  return { callOff:c, ncns:nc, count:counted };
+}
+
+/* ============ combined submission ============ */
+/* Confirmed by an actual received email: Jotform shows this widget's answer
+   as plain escaped text, not rendered HTML (unlike its native Configurable
+   List fields, which get their own special server-side table rendering).
+   An earlier version of this tried real HTML/hidden-comment tricks here and
+   they showed up as literal visible tag soup in the inbox — plain text only,
+   from here on. The Daily Summary Board numbers live in their own widget's
+   email row instead of being repeated here — see summary/index.html. */
+var lastValue = "";
+var OT_LABELS = { facility: "Facility", regular: "Regular" };
+/* Shared by hdApplyRestore() above - fills in any fields a prior version of
+   this widget didn't have yet, and gives every row a fresh id if it's
+   missing one. */
+function restoreLines(rawShifts, rawCalls){
+  var shifts = Array.isArray(rawShifts) ? rawShifts : [];
+  var calls = Array.isArray(rawCalls) ? rawCalls : [];
+  return {
+    shiftLines: shifts.map(function(L){ return Object.assign(blankShift(), L, { id: (L && L.id) || uid() }); }),
+    callLines: calls.map(function(L){ return Object.assign(blankCall(), L, { id: (L && L.id) || uid() }); })
+  };
+}
+
+function submittedValue(st, ct){
+  var out = [];
+
+  var shiftSectionStart = out.length;
+  if(st.count){
+    out.push("SHIFT(S) STAFFED");
+    out.push("");
+    var shiftNum = 0;
+    shiftLines.forEach(function(L){
+      var c = computeShift(L);
+      if(!c.counted) return;
+      shiftNum++;
+      var whenParts = [];
+      if(L.shiftDate) whenParts.push(fmtDate(L.shiftDate));
+      var startStr = fmtTime12(L.startHour, L.startMin, L.startAmPm);
+      var endStr = fmtTime12(L.endHour, L.endMin, L.endAmPm);
+      if(startStr || endStr) whenParts.push((startStr||"?") + "-" + (endStr||"?"));
+      var whenText = whenParts.length ? whenParts.join("  ") : "—";
+      /* Always just the worked hours here, even when Bill/Pay Different
+         Hours? is Yes - keeps this line's width consistent regardless of
+         that option, instead of needing extra email width just for the
+         occasional longer "Bill Xh / Pay Yh" version. The bill/pay hour
+         breakdown gets its own dedicated line below instead when it applies. */
+      var hoursText = c.totalHrs > 0 ? fmtHrs(c.totalHrs) + "h" : "—";
+      var otText = OT_LABELS[L.otRule] || "—";
+      /* Numbered so multiple staff/shifts are clearly separate entries, one
+         clearly-labeled line per fact instead of one long run-on line. */
+      /* Row 1: who + when + total hours. Row 2: the money math + GPM.
+         Row 3: the confirmation questions. (Client's spec for the email
+         text layout — NOT the on-screen widget form, which stays as-is.) */
+      out.push(shiftNum + ". " + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ") | " + whenText + " (" + hoursText + ")");
+      var bonusText = n(L.bonus) > 0 ? " | Bonus " + money(n(L.bonus)) : "";
+      var gpmText = c.ready ? pct(c.gpm) : "—";
+      if(c.useDiff){
+        /* When Bill/Pay Different Hours is Yes: Base Rate moves up next to
+           Pay (both are per-shift rate questions, read together), GPM moves
+           down next to the bill/pay hours it's actually derived from (cause
+           and effect read together), and the confirmation questions shift to
+           their own line instead of sharing one with Diff Hours. */
+        out.push("    OT: " + otText + " | Bill " + money(n(L.bill)) + "/hr | Pay " + money(n(L.pay)) + "/hr | Base Rate: " + (L.baseRate || "—") + bonusText);
+        out.push("    Diff Pay/Bill Hours: " + (L.diffHours || "—") + " | Bill Hours: " + fmtHrs(c.billHrs) + "h | Pay Hours: " + fmtHrs(c.payHrs) + "h | GPM " + gpmText);
+        out.push("    Prep Call: " + (L.prepCall || "—") + " | POC Updated: " + (L.pocUpdated || "—") + " | FSFU: " + (L.fsfuTask || "—") + " | RN Pad: " + (L.rnPad || "—"));
+      } else {
+        /* Split across 2 shorter lines instead of 1 long one - the single
+           long version was the one thing forcing the whole email wider than
+           every other row needed, leaving a lot of visibly wasted white
+           space next to shorter rows (client flagged this directly). */
+        out.push("    OT: " + otText + " | Bill " + money(n(L.bill)) + "/hr | Pay " + money(n(L.pay)) + "/hr" + bonusText + " | GPM " + gpmText);
+        out.push("    Base Rate: " + (L.baseRate || "—") + " | Diff Pay/Bill Hours: " + (L.diffHours || "—") + " | Prep Call: " + (L.prepCall || "—"));
+        out.push("    POC Updated: " + (L.pocUpdated || "—") + " | FSFU: " + (L.fsfuTask || "—") + " | RN Pad: " + (L.rnPad || "—"));
+      }
+      out.push("");
+    });
+  }
+
+  if(ct.count){
+    /* Clear divider so this section reads as distinctly separate from
+       Shifts Staffed above, even though both share one email row/field. */
+    if(out.length){
+      /* Auto-scaled to the actual content instead of a hardcoded number
+         (2026-09-13): a fixed "═" count kept needing manual re-measurement
+         via Playwright every time any shift line's wording changed (labels
+         renamed, fields reordered, a line split in two...). Since "═" is a
+         wider glyph than average text (~11.5px/char here vs ~7-8px/char for
+         normal proportional text), a dividerChars-to-textChars ratio well
+         under 1 reaches roughly the same visual endpoint as the widest real
+         line above it. Calibrated from two independent rigorous
+         (getClientRects()-based, full-real-table) measurements this session:
+         46 chars matched a 71-char line, 60 chars matched a 103-char line -
+         ratios of 0.65 and 0.58. Using 0.58 (the more conservative of the
+         two) so this stays a little under rather than risk wrapping again if
+         a future line is unusually text-heavy. This is an approximation, not
+         a pixel-perfect match (character widths vary with content) - if it's
+         ever visibly off, nudge DIVIDER_RATIO below rather than going back to
+         a hardcoded count. */
+      var DIVIDER_RATIO = 0.58;
+      var widestLine = 0;
+      for(var wi = shiftSectionStart; wi < out.length; wi++){
+        if(out[wi].length > widestLine) widestLine = out[wi].length;
+      }
+      var dividerChars = Math.max(20, Math.round(widestLine * DIVIDER_RATIO));
+      out.push("═".repeat(dividerChars));
+      out.push("");
+    }
+    out.push("CALL-OFFS / NCNS");
+    out.push("");
+    var callNum = 0;
+    callLines.forEach(function(L){
+      if(!callHasContent(L)) return;
+      callNum++;
+      /* 2 lines per entry, same condensed spirit as the shift rows above:
+         row 1 = type/client/employee + shift, row 2 = called-off time + reason. */
+      var shiftPart = L.shiftTime ? " | Shift: " + L.shiftTime : "";
+      out.push(callNum + ". " + (L.type || "Unspecified") + " — " + (L.client || "Client") + " — " + (L.emp || "Unassigned") + shiftPart);
+      var line2 = [
+        L.callTime ? "Called off: " + L.callTime : "",
+        L.reason ? "Reason: " + L.reason : ""
+      ].filter(Boolean).join(" | ");
+      if(line2) out.push("    " + line2);
+      out.push("");
+    });
+  }
+
+  if(!out.length){
+    out.push("No shifts or call-offs entered.");
+  } else if(out[out.length - 1] === ""){
+    out.pop(); /* drop the trailing blank line from the last entry above */
+  }
+
+  /* No technical data block appended here anymore (2026-09-13): the restore
+     data now lives entirely in the separate "handoffData" carrier field
+     (qid 202, see hdBroadcastRows()/hdApplyRestore() above), which the email
+     never references - so this widget's own answer is 100% human-readable
+     text now. This widget no longer reads its OWN previous value for restore
+     at all (see the old own-value restore block removed from the "ready"
+     handler below). */
+
+  return out.join("\n");
+}
+
+function recalc(){
+  var st = shiftTotals();
+  var ct = callTotals();
+
+  shiftLines.forEach(function(L){
+    var c = computeShift(L), o = shiftOuts[L.id];
+    if(o && o.gpm) o.gpm.textContent = c.ready ? pct(c.gpm) : "—";
+    if(o && o.hrs) o.hrs.textContent = c.totalHrs > 0 ?
+      (c.useDiff ? "Bill " + fmtHrs(c.billHrs) + "h / Pay " + fmtHrs(c.payHrs) + "h" : fmtHrs(c.totalHrs) + "h") : "—";
+    if(o && o.warn) o.warn.hidden = c.ready || !shiftStarted(L);
+    if(o && o.billBox) o.billBox.hidden = (L.diffHours !== "Yes");
+    if(o && o.payBox) o.payBox.hidden = (L.diffHours !== "Yes");
+  });
+
+  callLines.forEach(function(L){
+    var o = callOuts[L.id];
+    if(o && o.warn) o.warn.hidden = callHasContent(L) || !callStarted(L);
+  });
+
+  lastValue = submittedValue(st, ct);
+  broadcastSummary(st, ct);
+  hdBroadcastRows();
+  sync();
+}
+
+/* Broadcasts the live numbers via localStorage so the separate top-of-form
+   summary widget (same GitHub Pages origin, different Jotform field/iframe)
+   can display them live via the "storage" event. */
+function broadcastSummary(st, ct){
+  try {
+    localStorage.setItem("lcHandoffSummaryCCM", JSON.stringify({
+      gpm: st.blended,
+      cg: st.cg, clin: st.clin, totalStaff: st.cg + st.clin,
+      callOff: ct.callOff, ncns: ct.ncns, totalCallOffs: ct.callOff + ct.ncns,
+      ts: Date.now()
+    }));
+  } catch(e){ /* storage may be unavailable (private mode, blocked) - non-fatal */ }
+}
+
+$("addShift").addEventListener("click", function(){
+  var L = blankShift();
+  shiftLines.push(L);
+  $("shiftLines").appendChild(nodeShift(L));
+  recalc();
+  var f = document.getElementById("f-"+L.id+"-client");
+  if(f) f.focus();
+});
+
+$("addCall").addEventListener("click", function(){
+  var L = blankCall();
+  callLines.push(L);
+  $("callLines").appendChild(nodeCall(L));
+  recalc();
+  var f = document.getElementById("f-"+L.id+"-client");
+  if(f) f.focus();
+});
+
+/* ---- Jotform bridge (absent when the file is opened on its own) ---- */
+var JF = window.JFCustomWidget;
+var lastHeight = 0;
+/* Only true once the "ready" handshake has actually completed — guards every
+   call INTO Jotform (resize, sendData, sendSubmit) so nothing gets sent
+   before Jotform's side has actually finished setting up to listen for this
+   widget, which this project's 2026-09-13 investigation found can silently
+   swallow messages sent too early (this is also why "submit" is subscribed
+   to from inside "ready" below, not as a sibling). */
+var jfReady = false;
+/* The actual resize call. Kept separate from fit() so a few spots (initial
+   load, a blocked-submit banner appearing) can resize immediately, while
+   typing goes through the debounced fit() below instead. */
+function fitNow(){
+  if(!jfReady || !JF || !JF.requestFrameResize) return;
+  var h = Math.ceil(document.body.scrollHeight) + 8;
+  if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
+}
+/* Debounced: recalc() (and therefore fit()) runs on every keystroke as rows'
+   warning banners show/hide, and resizing the iframe on every single
+   keystroke was making the page jump/scroll while typing. Only resize once
+   input pauses for a moment. */
+var fitTimer = null;
+function fit(){
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(fitNow, 250);
+}
+var syncTimer = null;
+function sync(){
+  fit();
+  if(!jfReady || !JF || !JF.sendData) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(function(){ JF.sendData({value: lastValue}); }, 250);
+}
+/* CRITICAL: subscribe to "ready" as the very first thing this script does
+   (Jotform's own troubleshooting docs warn that subscribing too late means
+   the ready event has already fired and the callback is simply never
+   called), and subscribe to "submit" NESTED INSIDE the ready callback rather
+   than as a sibling subscription — per Jotform's documented custom-widget
+   pattern, a "submit" subscription registered outside/before "ready" has
+   completed can silently never fire. (2026-09-13: this exact bug — submit
+   never firing, confirmed via a temporary alert() diagnostic — is why every
+   submission's answer for this field has always come back empty.) */
+if(JF){
+  JF.subscribe("ready", function(readyData){
+    jfReady = true;
+    fitNow();
+    /* Restore-on-"Edit Submission" no longer reads this widget's OWN previous
+       value (2026-09-13) - that used to require appending a technical data
+       block to this widget's own answer, which showed up as visible clutter
+       in the email and (per a matching Outlook check the same day) actually
+       rendered WRONG there too (always {"shiftLines":[],"callLines":[]}
+       regardless of real content - a Jotform email-composition quirk, not a
+       storage bug: the stored answer itself was always correct via the API).
+       Restore now comes entirely from the separate "handoffData" carrier
+       field via hdApplyRestore() (storage-event listener + direct read,
+       registered below) - see that field's own comments for how. */
+    JF.subscribe("submit", function(){
+      /* Not required: a day with no shifts and no call-offs/NCNS is valid. */
+      JF.sendSubmit({ valid: true, value: lastValue });
+    });
+  });
+}
+/* Render blank defaults immediately regardless of whether/when "ready" ends
+   up firing, so the fields are visible right away either way. */
+shiftLines = [blankShift()];
+callLines = [blankCall()];
+renderShifts();
+renderCalls();
+
+/* Cross-iframe listener for the "handoffData" carrier widget: it re-announces
+   itself via HD_KEY_HELLO whenever IT loads (in case that happens after this
+   widget already broadcast, so this widget gets one more chance to be heard),
+   and hands back a prior submission's rows via HD_KEY_RESTORE. Both only ever
+   act on a live event fired from that OTHER iframe - "storage" never fires in
+   the same document that wrote the key, which is exactly what's wanted here. */
+window.addEventListener("storage", function(e){
+  if(!e || !e.newValue) return;
+  if(e.key === HD_KEY_HELLO){
+    hdBroadcastRows();
+  } else if(e.key === HD_KEY_RESTORE){
+    var data = null;
+    try { data = JSON.parse(e.newValue); } catch(err){ data = null; }
+    if(data && data.ts && (Date.now() - data.ts) < 10000) hdApplyRestore(data);
+  }
+});
+/* Direct one-time read at load, only for the case the carrier widget already
+   wrote HD_KEY_RESTORE before this widget's own script got here (so no
+   "storage" event will ever fire for it in this document) - guarded by the
+   same ~10s freshness window so a leftover from a much earlier session can
+   never be mistaken for this submission's own data. */
+(function(){
+  var raw = null;
+  try { raw = localStorage.getItem(HD_KEY_RESTORE); } catch(e){}
+  if(!raw) return;
+  var data = null;
+  try { data = JSON.parse(raw); } catch(e){ data = null; }
+  if(data && data.ts && (Date.now() - data.ts) < 10000) hdApplyRestore(data);
+})();
+
+window.addEventListener("resize", fit);
+})();
+</script>
+</body>
+</html>
+
+
+
+
