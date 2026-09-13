@@ -499,6 +499,7 @@ renderShifts();
 renderCalls();
 if(JF){
   JF.subscribe("ready", function(){
+    alert("WIDGET READY FIRED.");
     fitNow();
     /* Restore previous rows when reopening an existing submission via "Edit
        Submission" — client accepted the tradeoff that the hidden data block
