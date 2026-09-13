@@ -361,9 +361,11 @@ function submittedValue(st, ct){
   if(st.count){
     out.push("SHIFT(S) STAFFED");
     out.push("");
+    var shiftNum = 0;
     shiftLines.forEach(function(L){
       var c = computeShift(L);
       if(!c.counted) return;
+      shiftNum++;
       var whenParts = [];
       if(L.shiftDate) whenParts.push(fmtDate(L.shiftDate));
       var startStr = fmtTime12(L.startHour, L.startMin, L.startAmPm);
@@ -372,8 +374,9 @@ function submittedValue(st, ct){
       var whenText = whenParts.length ? whenParts.join("  ") : "—";
       var hoursText = c.totalHrs > 0 ? fmtHrs(c.totalHrs) + "h" : "—";
       var otText = OT_LABELS[L.otRule] || "—";
-      /* One clearly-labeled line per fact, instead of one long run-on line. */
-      out.push((L.client || "Client") + "  —  " + (L.cg || "Unassigned") + " (" + L.disc + ")");
+      /* Numbered so multiple staff/shifts are clearly separate entries, one
+         clearly-labeled line per fact instead of one long run-on line. */
+      out.push(shiftNum + ". " + (L.client || "Client") + "  —  " + (L.cg || "Unassigned") + " (" + L.disc + ")");
       out.push("    " + whenText + "   (" + hoursText + ")");
       out.push("    OT Rule: " + otText + "     Bill: " + money(n(L.bill)) + "/hr     Pay: " + money(n(L.pay)) + "/hr");
       out.push("    GPM: " + (c.ready ? pct(c.gpm) : "—"));
@@ -384,9 +387,11 @@ function submittedValue(st, ct){
   if(ct.count){
     out.push("CALL-OFFS / NCNS");
     out.push("");
+    var callNum = 0;
     callLines.forEach(function(L){
       if(!callHasContent(L)) return;
-      out.push("[" + (L.type || "Unspecified") + "]  " + (L.client || "Client") + "  —  " + (L.emp || "Unassigned"));
+      callNum++;
+      out.push(callNum + ". [" + (L.type || "Unspecified") + "]  " + (L.client || "Client") + "  —  " + (L.emp || "Unassigned"));
       if(L.shiftTime) out.push("    Shift: " + L.shiftTime);
       if(L.callTime) out.push("    Called off: " + L.callTime);
       if(L.reason) out.push("    Reason: " + L.reason);
