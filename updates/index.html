@@ -131,7 +131,10 @@ function submittedValue(){
     entries.push("• " + (head || "Update") + (L.update ? ": " + L.update : ""));
   });
   if(!entries.length) return "";
-  return ["Updates", ""].concat(entries).join("\n");
+  /* No "Updates" heading line here - the row's own label to the left
+     ("Updates:") already says that, so a repeated heading inside the value
+     itself was pure clutter (client explicitly asked for it gone). */
+  return entries.join("\n");
 }
 
 var lastValue = "";
