@@ -454,19 +454,24 @@ function submittedValue(st, ct){
     /* Clear divider so this section reads as distinctly separate from
        Shifts Staffed above, even though both share one email row/field. */
     if(out.length){
-      /* Earlier estimates here (160, then 150) were both wrong - based on a
-         flawed ~4.3px/char guess. Rigorously re-measured via a Playwright
-         getClientRects() line-count check against the real rendered email
-         (not eyeballing): "═" actually renders at ~11.5px/char in this
-         email's font-fallback context, and the value column is ~668px wide
-         at the current 860px-wide email layout - so the real single-line max
-         is 58 chars, which also happens to be almost exactly where the
-         confirm-questions line above ("...FSFU: Yes | RN Pad: Yes") itself
-         ends - client asked for the bar to reach that same endpoint, so this
-         uses the full 58 (no safety margin this time; re-measure again with
-         the same technique if the email's overall width, font, or field
-         content ever changes materially). */
-      out.push("═".repeat(58));
+      /* Every char-count guess here (160, 150, 58) before this one was wrong
+         in one way or another - either from a flawed px/char estimate, or
+         (58) from measuring against markup Outlook doesn't actually render
+         the same way (it strips width=/valign=/bgcolor= attributes from
+         external mail, which changes the real column-width layout). The
+         confirm-questions line above ("...FSFU: Yes | RN Pad: Yes") was
+         ALSO found to be wrapping onto its own 2nd line at the email's old
+         860/950px widths given the bigger 15px font - client asked to widen
+         until it stops wrapping instead of chasing the divider to a moving
+         (wrapped) target. Re-verified from scratch against the exact real
+         Outlook-delivered structure (all rows present, real content, real
+         font-size:15px cells - a single isolated row measures unreliably,
+         must use the full table): at the current 1100px-wide email, RN Pad
+         stops wrapping, and 60 chars is the real single-line divider max
+         that reaches its end. Re-measure again (same full-table, real-
+         content technique) if the email's width, font-size, or this line's
+         content ever changes materially. */
+      out.push("═".repeat(60));
       out.push("");
     }
     out.push("CALL-OFFS / NCNS");
