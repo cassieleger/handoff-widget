@@ -460,10 +460,13 @@ function submittedValue(st, ct){
          (not eyeballing): "═" actually renders at ~11.5px/char in this
          email's font-fallback context, and the value column is ~668px wide
          at the current 860px-wide email layout - so the real single-line max
-         is 58 chars. Using 54 for a safety margin across different email
-         clients' font substitution. Re-measure again (same technique) if the
-         email's overall width (currently 860px) ever changes. */
-      out.push("═".repeat(54));
+         is 58 chars, which also happens to be almost exactly where the
+         confirm-questions line above ("...FSFU: Yes | RN Pad: Yes") itself
+         ends - client asked for the bar to reach that same endpoint, so this
+         uses the full 58 (no safety margin this time; re-measure again with
+         the same technique if the email's overall width, font, or field
+         content ever changes materially). */
+      out.push("═".repeat(58));
       out.push("");
     }
     out.push("CALL-OFFS / NCNS");
