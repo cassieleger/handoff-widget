@@ -326,101 +326,55 @@ function callTotals(){
 }
 
 /* ============ combined submission ============ */
+/* Confirmed by an actual received email: Jotform shows this widget's answer
+   as plain escaped text, not rendered HTML (unlike its native Configurable
+   List fields, which get their own special server-side table rendering).
+   An earlier version of this tried real HTML/hidden-comment tricks here and
+   they showed up as literal visible tag soup in the inbox — plain text only,
+   from here on. The Daily Summary Board numbers live in their own widget's
+   email row instead of being repeated here — see summary/index.html. */
 var lastValue = "";
 var OT_LABELS = { facility: "Facility", regular: "Regular" };
-function esc(s){
-  return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-/* Clean HTML tables for the notification email (replaces the old plain-text
-   bullet list). The Daily Summary Board numbers now live in their own widget's
-   email row instead of being repeated here — see summary/index.html. */
-var TABLE_STYLE = "width:100%; border-collapse:collapse; font-family:'Work Sans',Helvetica,Arial,sans-serif; font-size:12.5px;";
-var TH_STYLE = "text-align:left; padding:8px 10px; background-color:#F7F3ED; color:#79716B; font-size:10px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; border-bottom:1px solid #E3DBD0;";
-var TD_STYLE = "padding:8px 10px; border-bottom:1px solid #EFE9E0; color:#302F2F; vertical-align:top;";
-var SECTION_LABEL_STYLE = "font-family:'Work Sans',Helvetica,Arial,sans-serif; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#4A7272; margin:0 0 6px;";
-
-function shiftsTableHtml(){
-  var rows = shiftLines.map(function(L){
-    var c = computeShift(L);
-    if(!c.counted) return "";
-    var hoursText = c.totalHrs > 0 ? fmtHrs(c.totalHrs) + "h" : "—";
-    var otText = OT_LABELS[L.otRule] || "—";
-    var gpmText = c.ready ? pct(c.gpm) : "—";
-    return "<tr>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(fmtDate(L.shiftDate) || "—")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.client || "Client")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.cg || "Unassigned")+" ("+esc(L.disc)+")</td>"
-      + "<td style=\""+TD_STYLE+"\">"+hoursText+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+otText+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+money(n(L.bill))+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+money(n(L.pay))+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+gpmText+"</td>"
-      + "</tr>";
-  }).join("");
-  if(!rows) return "";
-  return "<div style=\""+SECTION_LABEL_STYLE+"\">Shift(s) Staffed</div>"
-    + "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\""+TABLE_STYLE+"\"><tbody>"
-    + "<tr>"
-      + "<th style=\""+TH_STYLE+"\">Date</th>"
-      + "<th style=\""+TH_STYLE+"\">Client</th>"
-      + "<th style=\""+TH_STYLE+"\">Employee</th>"
-      + "<th style=\""+TH_STYLE+"\">Hours</th>"
-      + "<th style=\""+TH_STYLE+"\">OT Rule</th>"
-      + "<th style=\""+TH_STYLE+"\">Bill/hr</th>"
-      + "<th style=\""+TH_STYLE+"\">Pay/hr</th>"
-      + "<th style=\""+TH_STYLE+"\">GPM</th>"
-    + "</tr>"
-    + rows
-    + "</tbody></table>";
-}
-
-function callsTableHtml(){
-  var rows = callLines.map(function(L){
-    if(!callHasContent(L)) return "";
-    return "<tr>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.type || "—")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.client || "Client")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.emp || "Unassigned")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.shiftTime || "—")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.callTime || "—")+"</td>"
-      + "<td style=\""+TD_STYLE+"\">"+esc(L.reason || "—")+"</td>"
-      + "</tr>";
-  }).join("");
-  if(!rows) return "";
-  return "<div style=\""+SECTION_LABEL_STYLE+" margin-top:16px;\">Call-Offs / NCNS</div>"
-    + "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\""+TABLE_STYLE+"\"><tbody>"
-    + "<tr>"
-      + "<th style=\""+TH_STYLE+"\">Type</th>"
-      + "<th style=\""+TH_STYLE+"\">Client</th>"
-      + "<th style=\""+TH_STYLE+"\">Employee</th>"
-      + "<th style=\""+TH_STYLE+"\">Shift</th>"
-      + "<th style=\""+TH_STYLE+"\">Called Off</th>"
-      + "<th style=\""+TH_STYLE+"\">Reason</th>"
-    + "</tr>"
-    + rows
-    + "</tbody></table>";
-}
-
-/* Jotform only stores one text string per widget field — the pretty HTML
-   above is display-only for the email, so it can't be parsed back into
-   individual editable rows. The full row-by-row data (every field on every
-   shift/call-off, not just what's shown in the email) rides along inside an
-   HTML comment, which is invisible wherever this string gets rendered. This
-   is what lets reopening a past submission restore the real rows instead of
-   resetting to blank — see decodeState()/applyPopulatedValue() below. */
-function encodeState(){
-  var json = JSON.stringify({ shiftLines: shiftLines, callLines: callLines });
-  try { return btoa(unescape(encodeURIComponent(json))); } catch(e){ return ""; }
-}
 
 function submittedValue(st, ct){
-  var parts = [];
-  var shiftsHtml = shiftsTableHtml();
-  var callsHtml = callsTableHtml();
-  if(shiftsHtml) parts.push(shiftsHtml);
-  if(callsHtml) parts.push(callsHtml);
-  var visible = parts.join("<div style=\"height:14px; line-height:14px; font-size:0;\">&nbsp;</div>");
-  return visible + "<!--LC_STATE:" + encodeState() + "-->";
+  var out = [];
+
+  if(st.count){
+    out.push("SHIFT(S) STAFFED");
+    shiftLines.forEach(function(L){
+      var c = computeShift(L);
+      if(!c.counted) return;
+      var whenParts = [];
+      if(L.shiftDate) whenParts.push(fmtDate(L.shiftDate));
+      var startStr = fmtTime12(L.startHour, L.startMin, L.startAmPm);
+      var endStr = fmtTime12(L.endHour, L.endMin, L.endAmPm);
+      if(startStr || endStr) whenParts.push((startStr||"?") + "-" + (endStr||"?"));
+      var whenText = whenParts.length ? whenParts.join(" ") + " — " : "";
+      var hoursText = c.totalHrs > 0 ? fmtHrs(c.totalHrs) + "h" : "—";
+      var otText = OT_LABELS[L.otRule] || "—";
+      /* Just the selected OT Rule, not the hour-by-hour split/multiplier math. */
+      out.push("• " + whenText + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ")  "
+        + hoursText
+        + "  OT Rule: " + otText
+        + "  bill " + money(n(L.bill))
+        + " / pay " + money(n(L.pay))
+        + "  →  GPM " + (c.ready ? pct(c.gpm) : "—"));
+    });
+  }
+
+  if(ct.count){
+    if(out.length) out.push("");
+    out.push("CALL-OFFS / NCNS");
+    callLines.forEach(function(L){
+      if(!callHasContent(L)) return;
+      out.push("• [" + (L.type || "Unspecified") + "] " + (L.client || "Client") + " — " + (L.emp || "Unassigned")
+        + (L.shiftTime ? "  shift " + L.shiftTime : "")
+        + (L.callTime ? "  called off " + L.callTime : "")
+        + (L.reason ? "  — " + L.reason : ""));
+    });
+  }
+
+  return out.join("\n");
 }
 
 function recalc(){
@@ -503,53 +457,24 @@ function sync(){
   clearTimeout(syncTimer);
   syncTimer = setTimeout(function(){ JF.sendData({value: lastValue}); }, 250);
 }
-/* Reverses encodeState(). Returns null (not an empty {shiftLines:[],...})
-   when there's nothing to restore, so the caller knows to leave the fresh
-   blank rows alone instead of wiping them. */
-function decodeState(raw){
-  if(!raw || typeof raw !== "string") return null;
-  var m = /LC_STATE:([A-Za-z0-9+/=]+)/.exec(raw);
-  if(!m) return null;
-  try {
-    var json = decodeURIComponent(escape(atob(m[1])));
-    var data = JSON.parse(json);
-    if(data && Array.isArray(data.shiftLines) && Array.isArray(data.callLines)) return data;
-  } catch(e){ /* malformed/foreign value - fall through to null */ }
-  return null;
-}
-/* Jotform delivers a field's previous answer via a "populate" event fired
-   after "ready" (edit an existing submission, navigate back on a multi-page
-   form, or Save & Continue Later) — never via "ready" itself. The exact key
-   the value arrives under isn't documented, so this checks the plausible
-   ones. Submissions made before this fix carry no LC_STATE comment at all
-   (the old plain-text/blank format) and so still can't be restored — this
-   only protects submissions made from here on. */
-function applyPopulatedValue(payload){
-  var raw = payload && (payload.value != null ? payload.value
-    : payload.answer != null ? payload.answer
-    : payload.defaultValue != null ? payload.defaultValue
-    : payload.data);
-  var data = decodeState(raw);
-  if(!data) return;
-  shiftLines = data.shiftLines.length ? data.shiftLines : [blankShift()];
-  callLines = data.callLines.length ? data.callLines : [blankCall()];
-  renderShifts();
-  renderCalls();
-}
 /* Initialize immediately at script load rather than waiting on the "ready"
    event — that event can take a moment (or lag independently of the other
    widget on this form), and waiting on it left the Daily Summary Board
    showing stale/blank data for a beat before this widget caught up and
-   broadcast its real (zeroed) totals. If a "populate" event arrives shortly
-   after with a previous answer, applyPopulatedValue() replaces these blank
-   rows with the restored ones. */
+   broadcast its real (zeroed) totals.
+   NOTE: reopening a past submission to edit still resets this section to
+   blank — restoring it needs the full row-by-row data to travel somewhere
+   Jotform will hand back on edit without it also leaking into the visible
+   email text (a hidden HTML comment in this field's own answer was tried
+   and confirmed NOT to work — it showed up as visible text in the inbox).
+   That needs a different mechanism (e.g. a real Jotform hidden field) and
+   is follow-up work, not included in this pass. */
 shiftLines = [blankShift()];
 callLines = [blankCall()];
 renderShifts();
 renderCalls();
 if(JF){
   JF.subscribe("ready", function(){ fitNow(); });
-  JF.subscribe("populate", function(b){ applyPopulatedValue(b); });
   JF.subscribe("submit", function(){
     /* Not required: a day with no shifts and no call-offs/NCNS is valid. */
     JF.sendSubmit({ valid: true, value: lastValue });
