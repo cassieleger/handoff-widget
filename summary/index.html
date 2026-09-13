@@ -115,8 +115,11 @@ setInterval(render, 1000);
 /* ---- Jotform bridge (absent when the file is opened on its own) ---- */
 var JF = window.JFCustomWidget;
 var lastHeight = 0;
+/* Only true once "ready" has genuinely fired — see index.html's matching
+   comment for why (2026-09-13 investigation into submit never firing). */
+var jfReady = false;
 function fit(){
-  if(!JF || !JF.requestFrameResize) return;
+  if(!jfReady || !JF || !JF.requestFrameResize) return;
   var h = Math.ceil(document.body.scrollHeight) + 8;
   if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
 }
@@ -133,6 +136,7 @@ render();
    empty, even though the visible display worked fine.) */
 if(JF){
   JF.subscribe("ready", function(){
+    jfReady = true;
     render();
     fit();
     JF.subscribe("submit", function(){ JF.sendSubmit({ valid: true, value: submitText() }); });
