@@ -58,6 +58,9 @@ select{appearance:none;
   background:var(--accent-soft); border-top:1px solid var(--line); padding:9px 12px}
 .line-out .lbl{color:var(--accent)}
 .line-out .v{font-size:18px; font-weight:600; color:var(--accent); font-variant-numeric:tabular-nums}
+.line-warn{display:flex; align-items:center; gap:7px; background:var(--gold-soft); color:var(--gold);
+  font-size:12.5px; font-weight:600; padding:8px 12px; border-top:1px solid var(--line)}
+.line-warn[hidden]{display:none}
 .del{background:transparent; border:1px solid var(--line-2); color:var(--ink-3); border-radius:4px;
   height:36px; width:34px; cursor:pointer; font-size:16px; line-height:1; font-family:inherit}
 .del:hover{border-color:var(--red); color:var(--red); background:var(--red-soft)}
@@ -151,11 +154,17 @@ function computeShift(L){
   var labor   = ready ? (h.reg*pay + h.ot1*pay*OT1_MULT + h.ot2*pay*OT2_MULT) : 0;
   return { revenue:revenue, labor:labor, gp:revenue-labor,
            gpm: ready ? (revenue-labor)/revenue*100 : 0,
-           counted: revenue>0 || labor>0, hours:h, totalHrs:totalHrs };
+           ready: ready, counted: revenue>0 || labor>0, hours:h, totalHrs:totalHrs };
 }
 function blankShift(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:"",
   startHour:"", startMin:"", startAmPm:"", endHour:"", endMin:"", endAmPm:"", otRule:"", bill:"", pay:"",
   baseRate:"", pocUpdated:"", prepCall:"", fsfuTask:"", rnPad:""}; }
+/* Has anything at all been entered on this shift row yet? Used only to decide
+   whether to show the "missing info" warning (no point nagging on a fresh
+   blank row nobody has touched). */
+function shiftStarted(L){
+  return !!(L.client || L.cg || L.disc || L.startHour || L.endHour || L.otRule || n(L.bill) || n(L.pay));
+}
 
 function nodeShift(L){
   var d = document.createElement("div");
@@ -197,6 +206,7 @@ function nodeShift(L){
       '<div class="field"><label>FSFU Task in WS (if appl.)</label><select data-k="fsfuTask"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
       '<div class="field"><label>Nurse Assigned in RN Pad? (if appl.)</label><select data-k="rnPad"><option value="">Please Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>'+
     '</div>'+
+    '<div class="line-warn" data-o="warn" hidden>&#9888; Missing info above — this shift won’t count toward GPM until Shift Start/End, OT Rule, Bill $/hr, and Pay $/hr are all filled in.</div>'+
     '<div class="line-out">'+
       '<div><span class="lbl">Hours</span> <span class="v" data-o="hrs">&mdash;</span></div>'+
       '<div><span class="lbl">GPM for this shift</span> <span class="v" data-o="gpm">&mdash;</span></div>'+
@@ -214,7 +224,7 @@ function nodeShift(L){
     if(!shiftLines.length) shiftLines.push(blankShift());
     renderShifts();
   });
-  shiftOuts[L.id] = { gpm: d.querySelector('[data-o="gpm"]'), hrs: d.querySelector('[data-o="hrs"]') };
+  shiftOuts[L.id] = { gpm: d.querySelector('[data-o="gpm"]'), hrs: d.querySelector('[data-o="hrs"]'), warn: d.querySelector('[data-o="warn"]') };
   return d;
 }
 
@@ -240,12 +250,15 @@ function shiftTotals(){
 
 /* ============ CALL-OFFS / NCNS ============ */
 var CALL_TYPES = ["Call off <48 hours","NCNS"];
-var callLines = [];
+var callLines = [], callOuts = {};
 
 function blankCall(){ return {id:uid(), type:"", client:"", emp:"", callTime:"", shiftTime:"", reason:""}; }
 /* Only counts once every box on the row is filled in — a half-filled row
    doesn't get silently folded into the Call off/NCNS numbers. */
 function callHasContent(L){ return !!(L.type && L.client && L.emp && L.callTime && L.shiftTime && L.reason); }
+/* Has anything at all been entered on this call-off row yet? Same idea as
+   shiftStarted — only used to decide whether to show the warning. */
+function callStarted(L){ return !!(L.type || L.client || L.emp || L.callTime || L.shiftTime || L.reason); }
 
 function nodeCall(L){
   var d = document.createElement("div");
@@ -262,7 +275,8 @@ function nodeCall(L){
       '<div class="field"><label>Date/Time of Call Off</label><input type="text" data-k="callTime" placeholder="e.g. 3/12 6:45am"></div>'+
       '<div class="field"><label>Shift Date/Time</label><input type="text" data-k="shiftTime" placeholder="e.g. 3/12 7a-3p"></div>'+
       '<div class="field"><label>Reason</label><textarea data-k="reason" rows="1" placeholder="Reason"></textarea></div>'+
-    '</div>';
+    '</div>'+
+    '<div class="line-warn" data-o="warn" hidden>&#9888; Missing info above — this entry won’t count toward Call off/NCNS until every field on this row is filled in.</div>';
 
   d.querySelectorAll("[data-k]").forEach(function(inp){
     var k = inp.getAttribute("data-k");
@@ -276,11 +290,12 @@ function nodeCall(L){
     if(!callLines.length) callLines.push(blankCall());
     renderCalls();
   });
+  callOuts[L.id] = { warn: d.querySelector('[data-o="warn"]') };
   return d;
 }
 
 function renderCalls(){
-  var host = $("callLines"); host.textContent = "";
+  var host = $("callLines"); host.textContent = ""; callOuts = {};
   callLines.forEach(function(L){ host.appendChild(nodeCall(L)); });
   recalc();
 }
@@ -330,7 +345,7 @@ function submittedValue(st, ct){
         + hoursText
         + "  bill " + money(n(L.bill))
         + " / pay " + money(n(L.pay))
-        + "  →  GPM " + (c.revenue > 0 ? pct(c.gpm) : "—")
+        + "  →  GPM " + (c.ready ? pct(c.gpm) : "—")
         + (notes.length ? "  [" + notes.join(", ") + "]" : ""));
     });
   }
@@ -356,8 +371,14 @@ function recalc(){
 
   shiftLines.forEach(function(L){
     var c = computeShift(L), o = shiftOuts[L.id];
-    if(o && o.gpm) o.gpm.textContent = c.revenue > 0 ? pct(c.gpm) : "—";
+    if(o && o.gpm) o.gpm.textContent = c.ready ? pct(c.gpm) : "—";
     if(o && o.hrs) o.hrs.textContent = c.totalHrs > 0 ? fmtHrs(c.totalHrs) + "h" : "—";
+    if(o && o.warn) o.warn.hidden = c.ready || !shiftStarted(L);
+  });
+
+  callLines.forEach(function(L){
+    var o = callOuts[L.id];
+    if(o && o.warn) o.warn.hidden = callHasContent(L) || !callStarted(L);
   });
 
   lastValue = submittedValue(st, ct);
