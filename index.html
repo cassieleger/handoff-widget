@@ -378,8 +378,7 @@ function submittedValue(st, ct){
          clearly-labeled line per fact instead of one long run-on line. */
       out.push(shiftNum + ". " + (L.client || "Client") + "  —  " + (L.cg || "Unassigned") + " (" + L.disc + ")");
       out.push("    " + whenText + "   (" + hoursText + ")");
-      out.push("    OT Rule: " + otText + "     Bill: " + money(n(L.bill)) + "/hr     Pay: " + money(n(L.pay)) + "/hr");
-      out.push("    GPM: " + (c.ready ? pct(c.gpm) : "—"));
+      out.push("    OT Rule: " + otText + "     Bill: " + money(n(L.bill)) + "/hr     Pay: " + money(n(L.pay)) + "/hr     GPM: " + (c.ready ? pct(c.gpm) : "—"));
       out.push("");
     });
   }
