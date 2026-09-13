@@ -461,11 +461,18 @@ $("addCall").addEventListener("click", function(){
 /* ---- Jotform bridge (absent when the file is opened on its own) ---- */
 var JF = window.JFCustomWidget;
 var lastHeight = 0;
+/* Only true once the "ready" handshake has actually completed — guards every
+   call INTO Jotform (resize, sendData, sendSubmit) so nothing gets sent
+   before Jotform's side has actually finished setting up to listen for this
+   widget, which this project's 2026-09-13 investigation found can silently
+   swallow messages sent too early (this is also why "submit" is subscribed
+   to from inside "ready" below, not as a sibling). */
+var jfReady = false;
 /* The actual resize call. Kept separate from fit() so a few spots (initial
    load, a blocked-submit banner appearing) can resize immediately, while
    typing goes through the debounced fit() below instead. */
 function fitNow(){
-  if(!JF || !JF.requestFrameResize) return;
+  if(!jfReady || !JF || !JF.requestFrameResize) return;
   var h = Math.ceil(document.body.scrollHeight) + 8;
   if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
 }
@@ -481,7 +488,7 @@ function fit(){
 var syncTimer = null;
 function sync(){
   fit();
-  if(!JF || !JF.sendData) return;
+  if(!jfReady || !JF || !JF.sendData) return;
   clearTimeout(syncTimer);
   syncTimer = setTimeout(function(){ JF.sendData({value: lastValue}); }, 250);
 }
@@ -496,6 +503,7 @@ function sync(){
    submission's answer for this field has always come back empty.) */
 if(JF){
   JF.subscribe("ready", function(){
+    jfReady = true;
     fitNow();
     /* Restore previous rows when reopening an existing submission via "Edit
        Submission" — client accepted the tradeoff that the hidden data block
