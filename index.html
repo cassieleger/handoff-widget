@@ -485,18 +485,15 @@ function sync(){
   clearTimeout(syncTimer);
   syncTimer = setTimeout(function(){ JF.sendData({value: lastValue}); }, 250);
 }
-/* Initialize immediately at script load rather than waiting on the "ready"
-   event — that event can take a moment (or lag independently of the other
-   widget on this form), and waiting on it left the Daily Summary Board
-   showing stale/blank data for a beat before this widget caught up and
-   broadcast its real (zeroed) totals. Blank defaults render right away;
-   if "Edit Submission" handed back a prior value, the "ready" handler below
-   swaps in the restored rows once the bridge confirms it's actually editing
-   an existing entry, rather than delaying this render for every fresh entry. */
-shiftLines = [blankShift()];
-callLines = [blankCall()];
-renderShifts();
-renderCalls();
+/* CRITICAL: subscribe to "ready" as the very first thing this script does
+   (Jotform's own troubleshooting docs warn that subscribing too late means
+   the ready event has already fired and the callback is simply never
+   called), and subscribe to "submit" NESTED INSIDE the ready callback rather
+   than as a sibling subscription — per Jotform's documented custom-widget
+   pattern, a "submit" subscription registered outside/before "ready" has
+   completed can silently never fire. (2026-09-13: this exact bug — submit
+   never firing, confirmed via a temporary alert() diagnostic — is why every
+   submission's answer for this field has always come back empty.) */
 if(JF){
   JF.subscribe("ready", function(){
     fitNow();
@@ -517,12 +514,18 @@ if(JF){
         renderCalls();
       }
     } catch(e){ /* malformed/missing prior data — keep the blank defaults */ }
-  });
-  JF.subscribe("submit", function(){
-    /* Not required: a day with no shifts and no call-offs/NCNS is valid. */
-    JF.sendSubmit({ valid: true, value: lastValue });
+    JF.subscribe("submit", function(){
+      /* Not required: a day with no shifts and no call-offs/NCNS is valid. */
+      JF.sendSubmit({ valid: true, value: lastValue });
+    });
   });
 }
+/* Render blank defaults immediately regardless of whether/when "ready" ends
+   up firing, so the fields are visible right away either way. */
+shiftLines = [blankShift()];
+callLines = [blankCall()];
+renderShifts();
+renderCalls();
 window.addEventListener("resize", fit);
 })();
 </script>
