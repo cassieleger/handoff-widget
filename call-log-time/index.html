@@ -147,10 +147,9 @@ var lastHeight = 0;
 /* The actual resize call, kept separate from fit() so page load/ready can
    resize immediately while typing goes through the debounced fit() below. */
 function fitNow(){
-  /* TEMP DIAGNOSTIC (2026-09-12): disabled to help isolate an auto-scroll
-     bug reported elsewhere on this form. Frame height fixed via the Jotform
-     question's own frameHeight property instead while we isolate the cause. */
-  return;
+  if(!JF || !JF.requestFrameResize) return;
+  var h = Math.ceil(document.body.scrollHeight) + 8;
+  if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
 }
 /* Debounced: resizing the iframe on every keystroke was making the page
    jump/scroll while typing. Only resize once input pauses for a moment. */
