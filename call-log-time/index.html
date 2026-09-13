@@ -44,6 +44,9 @@ select{appearance:none;
 .add{width:100%; background:transparent; border:1px dashed var(--line-2); color:var(--ink-2);
   border-radius:4px; padding:10px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit}
 .add:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+#restoreNote{display:flex; align-items:center; gap:7px; background:var(--gold-soft); color:var(--gold);
+  font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:4px; margin-bottom:14px}
+#restoreNote[hidden]{display:none}
 
 @media (max-width:560px){
   .line-id{grid-template-columns:1fr 34px}
@@ -53,6 +56,7 @@ select{appearance:none;
 </head>
 <body>
 
+<div id="restoreNote" hidden>&#9888; Restored from this submission.</div>
 <div id="lines"></div>
 <button type="button" class="add" id="add">+ Add call</button>
 
@@ -70,6 +74,41 @@ function fmtTime12(h,m,ap){ if(!h || !ap) return ""; return h+":"+pad2(m)+ap; }
 
 function blank(){ return {id:uid(), hour:"", min:"", ampm:"", dir:"", who:"", name:"", reason:""}; }
 function hasContent(L){ return L.dir || L.who || L.name || L.reason || L.hour; }
+
+/* ---- Cross-iframe relay to the separate "handoffData" carrier widget ----
+   Same mechanism as the Shifts widget (see its matching comment): that widget
+   holds this widget's lines as part of ITS OWN answer instead of this widget
+   ever appending anything technical to its own submitted text, and hands them
+   back on "Edit Submission" so entries repopulate here too (previously this
+   widget had no restore at all - Call Log always came back blank on edit). */
+var HD_SID = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+var HD_KEY_CALLLOG = "lcHandoffRowsCallLog";
+var HD_KEY_RESTORE = "lcHandoffRestore";
+var HD_KEY_HELLO = "lcHandoffStoreHello";
+var hdRestoredOnce = false;
+function hdIsPristine(){ return !lines.some(hasContent); }
+function hdBroadcastRows(){
+  try {
+    localStorage.setItem(HD_KEY_CALLLOG, JSON.stringify({ v:1, sid:HD_SID, ts:Date.now(), lines: lines }));
+  } catch(e){ /* storage may be unavailable (private mode, blocked) - non-fatal */ }
+}
+/* Only ever called with data that arrived via a live "storage" event, or a
+   direct load-time read whose own ts is under ~10s old - see callers below.
+   Never applied once anything's been typed here, never applied twice. */
+function hdApplyRestore(data){
+  if(hdRestoredOnce || !hdIsPristine() || !data) return;
+  var raw = Array.isArray(data.callLogLines) ? data.callLogLines : [];
+  if(!raw.length) return;
+  hdRestoredOnce = true;
+  lines = raw.map(function(L){ return Object.assign(blank(), L, { id: (L && L.id) || uid() }); });
+  if(!lines.length) lines = [blank()];
+  render();
+  var note = $("restoreNote");
+  if(note){
+    note.textContent = "⚠ Restored " + lines.length + (lines.length===1?" call":" calls") + " from this submission.";
+    note.hidden = false;
+  }
+}
 
 function node(L){
   var d = document.createElement("div");
@@ -134,6 +173,7 @@ function submittedValue(){
 var lastValue = "";
 function recalc(){
   lastValue = submittedValue();
+  hdBroadcastRows();
   sync();
 }
 
@@ -177,6 +217,30 @@ function sync(){
    generic Iframe Embed field type doesn't reliably fire. */
 lines = [blank()];
 render();
+
+/* Cross-iframe listener for the "handoffData" carrier widget - see the
+   matching comment in the Shifts widget for why both a live event AND a
+   direct load-time read (each gated by the same ~10s freshness window) are
+   needed to cover every load-order case. */
+window.addEventListener("storage", function(e){
+  if(!e || !e.newValue) return;
+  if(e.key === HD_KEY_HELLO){
+    hdBroadcastRows();
+  } else if(e.key === HD_KEY_RESTORE){
+    var data = null;
+    try { data = JSON.parse(e.newValue); } catch(err){ data = null; }
+    if(data && data.ts && (Date.now() - data.ts) < 10000) hdApplyRestore(data);
+  }
+});
+(function(){
+  var raw = null;
+  try { raw = localStorage.getItem(HD_KEY_RESTORE); } catch(e){}
+  if(!raw) return;
+  var data = null;
+  try { data = JSON.parse(raw); } catch(e){ data = null; }
+  if(data && data.ts && (Date.now() - data.ts) < 10000) hdApplyRestore(data);
+})();
+
 /* CRITICAL: subscribe to "ready" as the very first thing, and nest "submit"
    INSIDE the ready callback rather than as a sibling subscription — Jotform's
    own troubleshooting docs warn a sibling "submit" subscription can silently
