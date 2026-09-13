@@ -447,17 +447,24 @@ function submittedValue(st, ct){
          text layout — NOT the on-screen widget form, which stays as-is.) */
       out.push(shiftNum + ". " + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ") | " + whenText + " (" + hoursText + ")");
       var bonusText = n(L.bonus) > 0 ? " | Bonus " + money(n(L.bonus)) : "";
-      out.push("    OT: " + otText + " | Bill " + money(n(L.bill)) + "/hr | Pay " + money(n(L.pay)) + "/hr" + bonusText + " | GPM " + (c.ready ? pct(c.gpm) : "—"));
-      /* Split across 2 shorter lines instead of 1 long one - the single long
-         version was the one thing forcing the whole email wider than every
-         other row needed, leaving a lot of visibly wasted white space next
-         to shorter rows (client flagged this directly). */
-      out.push("    Base Rate: " + (L.baseRate || "—") + " | Diff Pay/Bill Hours: " + (L.diffHours || "—") + " | Prep Call: " + (L.prepCall || "—"));
-      out.push("    POC Updated: " + (L.pocUpdated || "—") + " | FSFU: " + (L.fsfuTask || "—") + " | RN Pad: " + (L.rnPad || "—"));
-      /* Own dedicated line, only present when it applies, instead of ever
-         lengthening line 1 or line 3 - keeps every line the same width
-         whether or not this option is used. */
-      if(c.useDiff) out.push("    Bill Hours: " + fmtHrs(c.billHrs) + "h | Pay Hours: " + fmtHrs(c.payHrs) + "h");
+      var gpmText = c.ready ? pct(c.gpm) : "—";
+      if(c.useDiff){
+        /* When Bill/Pay Different Hours is Yes, GPM moves down next to the
+           bill/pay hours it's actually derived from (cause and effect read
+           together), and the confirmation questions shift to their own line
+           instead of sharing one with Base Rate/Diff Hours. */
+        out.push("    OT: " + otText + " | Bill " + money(n(L.bill)) + "/hr | Pay " + money(n(L.pay)) + "/hr" + bonusText);
+        out.push("    Base Rate: " + (L.baseRate || "—") + " | Diff Pay/Bill Hours: " + (L.diffHours || "—") + " | Bill Hours: " + fmtHrs(c.billHrs) + "h | Pay Hours: " + fmtHrs(c.payHrs) + "h | GPM " + gpmText);
+        out.push("    Prep Call: " + (L.prepCall || "—") + " | POC Updated: " + (L.pocUpdated || "—") + " | FSFU: " + (L.fsfuTask || "—") + " | RN Pad: " + (L.rnPad || "—"));
+      } else {
+        /* Split across 2 shorter lines instead of 1 long one - the single
+           long version was the one thing forcing the whole email wider than
+           every other row needed, leaving a lot of visibly wasted white
+           space next to shorter rows (client flagged this directly). */
+        out.push("    OT: " + otText + " | Bill " + money(n(L.bill)) + "/hr | Pay " + money(n(L.pay)) + "/hr" + bonusText + " | GPM " + gpmText);
+        out.push("    Base Rate: " + (L.baseRate || "—") + " | Diff Pay/Bill Hours: " + (L.diffHours || "—") + " | Prep Call: " + (L.prepCall || "—"));
+        out.push("    POC Updated: " + (L.pocUpdated || "—") + " | FSFU: " + (L.fsfuTask || "—") + " | RN Pad: " + (L.rnPad || "—"));
+      }
       out.push("");
     });
   }
