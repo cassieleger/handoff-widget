@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Internal Data</title>
+<script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+<style>
+  html, body { max-height: 99.5% !important; overflow-y: hidden; }
+  body { margin:0; font-family: "Work Sans", Segoe UI, Helvetica, Arial, sans-serif;
+         font-size: 11px; color: #708e8f; padding: 6px 8px; background: #F7F3ED; }
+  #status { white-space: pre-wrap; word-break: break-all; }
+</style>
+</head>
+<body>
+<div id="status">loading…</div>
+<script>
+(function(){
+"use strict";
+var $status = document.getElementById("status");
+
+/* This field's whole job: relay shiftLines/callLines/call-log/updates entries
+   between the Shifts, Call Log and Updates widgets (separate iframes, same
+   GitHub Pages origin) via localStorage, and hold the combined JSON as ITS
+   OWN submitted answer so the notification email never has to show it (the
+   email body only prints merge tags it explicitly references, and this
+   field's isn't one of them). Uses the same [data:do-not-edit]...[/data]
+   wrapper the Shifts widget originally used for its own now-removed
+   self-restore, kept only as this field's own storage format. */
+
+var DATA_START = "[data:do-not-edit]", DATA_END = "[/data]";
+var SID = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+var KEY_SHIFTS = "lcHandoffRowsShiftsLead";
+var KEY_CALLLOG = "lcHandoffRowsCallLogLead";
+var KEY_UPDATES = "lcHandoffRowsUpdatesLead";
+var KEY_RESTORE = "lcHandoffRestoreLead";
+var KEY_HELLO = "lcHandoffStoreHelloLead";
+
+var latestShifts = null;   /* {v,sid,ts,shiftLines,callLines} from the Shifts widget, only via live event */
+var latestCallLog = null;  /* {v,sid,ts,lines} from the Call Log widget, only via live event */
+var latestUpdates = null;  /* {v,sid,ts,lines} from the Updates widget, only via live event */
+
+function readJSON(raw){
+  if(!raw) return null;
+  try { var v = JSON.parse(raw); return (v && typeof v === "object") ? v : null; }
+  catch(e){ return null; }
+}
+
+function combinedValue(){
+  var payload = {
+    shiftLines: (latestShifts && latestShifts.shiftLines) || [],
+    callLines: (latestShifts && latestShifts.callLines) || [],
+    callLogLines: (latestCallLog && latestCallLog.lines) || [],
+    updatesLines: (latestUpdates && latestUpdates.lines) || []
+  };
+  return DATA_START + JSON.stringify(payload) + DATA_END;
+}
+
+/* Deliberately NEVER reads KEY_SHIFTS/KEY_CALLLOG directly at load — only a
+   live "storage" event counts. A direct read here could pick up a stale
+   leftover from a previous day/session if one of those widgets' iframes
+   never actually loads this time (lazy-loading, a blocked iframe, etc.),
+   which would silently file foreign rows into today's submission. Both
+   source widgets already broadcast on their own normal load (recalc() runs
+   once on render), and KEY_HELLO below makes them re-broadcast immediately
+   if THIS field happens to finish loading after they did. */
+window.addEventListener("storage", function(e){
+  if(!e || !e.newValue) return;
+  if(e.key === KEY_SHIFTS){ var v = readJSON(e.newValue); if(v) latestShifts = v; }
+  else if(e.key === KEY_CALLLOG){ var v2 = readJSON(e.newValue); if(v2) latestCallLog = v2; }
+  else if(e.key === KEY_UPDATES){ var v3 = readJSON(e.newValue); if(v3) latestUpdates = v3; }
+});
+
+function sayHello(){
+  try { localStorage.setItem(KEY_HELLO, JSON.stringify({ sid: SID, ts: Date.now() })); }
+  catch(e){ /* storage unavailable - non-fatal, source widgets already broadcast on their own load regardless */ }
+}
+
+/* ---- Jotform bridge ---- */
+var JF = window.JFCustomWidget;
+var jfReady = false;
+var lastHeight = 0;
+function fitNow(){
+  if(!jfReady || !JF || !JF.requestFrameResize) return;
+  var h = Math.ceil(document.body.scrollHeight) + 8;
+  if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
+}
+
+function renderStatus(prev){
+  var lines = [];
+  lines.push("Internal data store — do not edit.");
+  lines.push("sid=" + SID);
+  lines.push("prev value present: " + (prev ? "yes (" + prev.length + " chars)" : "no"));
+  $status.textContent = lines.join("\n");
+}
+
+if(JF){
+  JF.subscribe("ready", function(readyData){
+    jfReady = true;
+    var prev = (readyData && readyData.value) || (JF.getWidgetSetting && JF.getWidgetSetting("value"));
+    renderStatus(prev);
+    fitNow();
+
+    /* Restore path: hand the previous submission's data back to the Shifts,
+       Call Log and Updates widgets via localStorage, tagged with SID + ts so
+       each receiver can tell a genuinely fresh broadcast from something
+       stale. */
+    var i = (typeof prev === "string") ? prev.indexOf(DATA_START) : -1;
+    var j = (typeof prev === "string") ? prev.indexOf(DATA_END) : -1;
+    var restoreData = null;
+    if(i !== -1 && j !== -1 && j > i){
+      try { restoreData = JSON.parse(prev.substring(i + DATA_START.length, j)); } catch(e){ restoreData = null; }
+    }
+    try {
+      if(restoreData){
+        localStorage.setItem(KEY_RESTORE, JSON.stringify({
+          v: 1, sid: SID, ts: Date.now(),
+          shiftLines: restoreData.shiftLines || [],
+          callLines: restoreData.callLines || [],
+          callLogLines: restoreData.callLogLines || [],
+          updatesLines: restoreData.updatesLines || []
+        }));
+      } else {
+        /* Fresh submission - explicitly remove any stale leftover restore
+           key rather than leaving it for some other tab to misread. */
+        localStorage.removeItem(KEY_RESTORE);
+      }
+    } catch(e){ /* storage unavailable - non-fatal */ }
+
+    sayHello();
+
+    JF.subscribe("submit", function(){
+      JF.sendSubmit({ valid: true, value: combinedValue() });
+    });
+  });
+} else {
+  renderStatus(null);
+}
+
+window.addEventListener("resize", fitNow);
+})();
+</script>
+</body>
+</html>
