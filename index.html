@@ -385,6 +385,12 @@ function submittedValue(st, ct){
   }
 
   if(ct.count){
+    /* Clear divider so this section reads as distinctly separate from
+       Shifts Staffed above, even though both share one email row/field. */
+    if(out.length){
+      out.push("═══════════════════");
+      out.push("");
+    }
     out.push("CALL-OFFS / NCNS");
     out.push("");
     var callNum = 0;
