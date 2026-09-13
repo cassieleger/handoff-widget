@@ -419,6 +419,7 @@ function restoreLines(rawShifts, rawCalls){
 function submittedValue(st, ct){
   var out = [];
 
+  var shiftSectionStart = out.length;
   if(st.count){
     out.push("SHIFT(S) STAFFED");
     out.push("");
@@ -474,24 +475,29 @@ function submittedValue(st, ct){
     /* Clear divider so this section reads as distinctly separate from
        Shifts Staffed above, even though both share one email row/field. */
     if(out.length){
-      /* History of this value, in case it needs revisiting again: 160, 150
-         and 58 were all wrong estimates; widening the whole email to 1100px
-         (60 chars) fixed a real wrap on the confirm-questions line but left
-         a lot of visibly wasted white space on every shorter row (client
-         flagged it directly - "pull in the width shown by red"). The real
-         fix was splitting that one long confirm-questions line into two
-         shorter ones (see the two out.push() calls above) and moving the
-         Bill/Pay-different-hours breakdown to its own conditional line
-         instead of ever lengthening line 1 - so no single line needs 1100px
-         any more. Re-measured from scratch against the exact real
-         Outlook-delivered structure (all rows present, real content - a
-         single isolated row measures this unreliably, must use the full
-         table): 860px is the narrowest width where nothing wraps, and 46
-         chars is the real single-line divider max at that width. Re-measure
-         again (same full-table technique, see this session's scratchpad
-         scripts) if the email's width, font-size, or any of this shift
-         text's lines change materially again. */
-      out.push("═".repeat(46));
+      /* Auto-scaled to the actual content instead of a hardcoded number
+         (2026-09-13): a fixed "═" count kept needing manual re-measurement
+         via Playwright every time any shift line's wording changed (labels
+         renamed, fields reordered, a line split in two...). Since "═" is a
+         wider glyph than average text (~11.5px/char here vs ~7-8px/char for
+         normal proportional text), a dividerChars-to-textChars ratio well
+         under 1 reaches roughly the same visual endpoint as the widest real
+         line above it. Calibrated from two independent rigorous
+         (getClientRects()-based, full-real-table) measurements this session:
+         46 chars matched a 71-char line, 60 chars matched a 103-char line -
+         ratios of 0.65 and 0.58. Using 0.58 (the more conservative of the
+         two) so this stays a little under rather than risk wrapping again if
+         a future line is unusually text-heavy. This is an approximation, not
+         a pixel-perfect match (character widths vary with content) - if it's
+         ever visibly off, nudge DIVIDER_RATIO below rather than going back to
+         a hardcoded count. */
+      var DIVIDER_RATIO = 0.58;
+      var widestLine = 0;
+      for(var wi = shiftSectionStart; wi < out.length; wi++){
+        if(out[wi].length > widestLine) widestLine = out[wi].length;
+      }
+      var dividerChars = Math.max(20, Math.round(widestLine * DIVIDER_RATIO));
+      out.push("═".repeat(dividerChars));
       out.push("");
     }
     out.push("CALL-OFFS / NCNS");
