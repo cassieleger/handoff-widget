@@ -453,10 +453,22 @@ $("addCall").addEventListener("click", function(){
 /* ---- Jotform bridge (absent when the file is opened on its own) ---- */
 var JF = window.JFCustomWidget;
 var lastHeight = 0;
-function fit(){
+/* The actual resize call. Kept separate from fit() so a few spots (initial
+   load, a blocked-submit banner appearing) can resize immediately, while
+   typing goes through the debounced fit() below instead. */
+function fitNow(){
   if(!JF || !JF.requestFrameResize) return;
   var h = Math.ceil(document.body.scrollHeight) + 8;
   if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
+}
+/* Debounced: recalc() (and therefore fit()) runs on every keystroke as rows'
+   warning banners show/hide, and resizing the iframe on every single
+   keystroke was making the page jump/scroll while typing. Only resize once
+   input pauses for a moment. */
+var fitTimer = null;
+function fit(){
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(fitNow, 250);
 }
 var syncTimer = null;
 function sync(){
@@ -471,7 +483,7 @@ if(JF){
     callLines = [blankCall()];
     renderShifts();
     renderCalls();
-    fit();
+    fitNow();
   });
   JF.subscribe("submit", function(){
     /* A day with no shifts and no call-offs/NCNS is still valid — it's only
@@ -480,7 +492,7 @@ if(JF){
     if(incompleteExists()){
       if(block){
         block.hidden = false;
-        fit();
+        fitNow();
       }
       JF.sendSubmit({ valid: false, value: lastValue });
       return;
