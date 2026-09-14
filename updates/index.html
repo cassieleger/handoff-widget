@@ -147,10 +147,15 @@ function submittedValue(){
      the actual delivered email, since "╌" is a much narrower glyph than
      "═" in most real fonts. Using 1:1 with the widest line's character
      count errs wide rather than risk looking short again. */
+  /* Capped at 43 - the client approved this exact width (2026-09-14) and
+     explicitly asked that it never grow wider than this on a future
+     submission with longer entry text, even though it still scales down
+     for shorter entries below this cap. */
   var widest = 0;
   entries.forEach(function(e){ if(e.length > widest) widest = e.length; });
   var DIVIDER_RATIO = 0.45;
-  var dividerChars = Math.max(15, Math.round(widest * DIVIDER_RATIO));
+  var MAX_DIVIDER_CHARS = 43;
+  var dividerChars = Math.min(MAX_DIVIDER_CHARS, Math.max(15, Math.round(widest * DIVIDER_RATIO)));
   var LIGHT_RULE = "╌".repeat(dividerChars);
   return entries.join("\n" + LIGHT_RULE + "\n");
 }
