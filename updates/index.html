@@ -141,7 +141,16 @@ function submittedValue(){
      two different sections. Plain-text only: Jotform renders a widget's
      answer as plain escaped text with no real HTML/CSS, so true color
      styling isn't possible here (confirmed 2026-09-13). */
-  var LIGHT_RULE = "╌".repeat(20);
+  /* Scaled to the widest entry (same auto-scaling spirit as the Shifts
+     widget's "═" section divider) rather than a fixed short count - a
+     fixed 20-char version rendered too narrow against real entry text in
+     the actual delivered email, since "╌" is a much narrower glyph than
+     "═" in most real fonts. Using 1:1 with the widest line's character
+     count errs wide rather than risk looking short again. */
+  var widest = 0;
+  entries.forEach(function(e){ if(e.length > widest) widest = e.length; });
+  var dividerChars = Math.max(20, widest);
+  var LIGHT_RULE = "╌".repeat(dividerChars);
   return entries.join("\n" + LIGHT_RULE + "\n");
 }
 
