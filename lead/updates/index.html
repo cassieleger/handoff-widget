@@ -141,11 +141,10 @@ function submittedValue(){
      two different sections. Plain-text only: Jotform renders a widget's
      answer as plain escaped text with no real HTML/CSS, so true color
      styling isn't possible here (confirmed 2026-09-13). */
-  /* Short fixed-length tick rather than scaled to entry width - client
-     pointed to a specific short target width in a screenshot (2026-09-14)
-     after the scaled 43-char version still read as too wide. A small fixed
-     divider (not tied to entry length) is what they actually want here. */
-  var dividerChars = 8;
+  /* Fixed-length tick, trimmed down from the approved 43-char version by
+     about 8 chars per client feedback (2026-09-14) - not cut all the way
+     down to 8 total, that overshot the actual request. */
+  var dividerChars = 35;
   var LIGHT_RULE = "╌".repeat(dividerChars);
   return entries.join("\n" + LIGHT_RULE + "\n");
 }
