@@ -141,16 +141,18 @@ function submittedValue(){
      two different sections. Plain-text only: Jotform renders a widget's
      answer as plain escaped text with no real HTML/CSS, so true color
      styling isn't possible here (confirmed 2026-09-13). */
-  /* Matches the widest entry's own character length (client request
-     2026-09-14). The email template's word-break/overflow-wrap CSS on this
-     cell has been removed to make this possible without wrapping: without
-     those forced-break properties, a single unbroken run of characters
-     (this divider has no spaces) simply overflows past the 250px column on
-     one line instead of breaking mid-token - normal update text still
-     wraps fine at its own natural word/space boundaries either way. */
+  /* Scales toward the widest entry's length but capped at 30 - matching
+     the RAW entry length exactly (tried 2026-09-14) is unsafe once the
+     email template's word-break CSS is removed: an entry can be hundreds
+     of characters long, and an unbroken divider that long forces Outlook's
+     table engine to stretch the whole column (or the whole email) wider to
+     fit it, since Outlook expands cells around unbreakable content rather
+     than clipping it. Capping keeps it responsive to short entries while
+     guaranteeing it can never blow out the layout for a long one. */
   var widest = 0;
   entries.forEach(function(e){ if(e.length > widest) widest = e.length; });
-  var dividerChars = Math.max(15, widest);
+  var MAX_DIVIDER_CHARS = 30;
+  var dividerChars = Math.min(MAX_DIVIDER_CHARS, Math.max(15, widest));
   var LIGHT_RULE = "╌".repeat(dividerChars);
   return entries.join("\n" + LIGHT_RULE + "\n");
 }
