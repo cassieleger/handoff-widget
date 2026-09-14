@@ -141,12 +141,16 @@ function submittedValue(){
      two different sections. Plain-text only: Jotform renders a widget's
      answer as plain escaped text with no real HTML/CSS, so true color
      styling isn't possible here (confirmed 2026-09-13). */
-  /* Short enough to always render on a single line within the Updates
-     cell's now-narrow 250px column - since this is a solid unbroken run of
-     characters (no spaces), word-break:break-word on the cell was wrapping
-     it across multiple lines at 35 chars, which looked wrong (client
-     feedback 2026-09-14: dashes should never wrap, just stop at one line). */
-  var dividerChars = 15;
+  /* Matches the widest entry's own character length (client request
+     2026-09-14). The email template's word-break/overflow-wrap CSS on this
+     cell has been removed to make this possible without wrapping: without
+     those forced-break properties, a single unbroken run of characters
+     (this divider has no spaces) simply overflows past the 250px column on
+     one line instead of breaking mid-token - normal update text still
+     wraps fine at its own natural word/space boundaries either way. */
+  var widest = 0;
+  entries.forEach(function(e){ if(e.length > widest) widest = e.length; });
+  var dividerChars = Math.max(15, widest);
   var LIGHT_RULE = "╌".repeat(dividerChars);
   return entries.join("\n" + LIGHT_RULE + "\n");
 }
