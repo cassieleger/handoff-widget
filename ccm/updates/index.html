@@ -134,7 +134,15 @@ function submittedValue(){
   /* No "Updates" heading line here - the row's own label to the left
      ("Updates:") already says that, so a repeated heading inside the value
      itself was pure clutter (client explicitly asked for it gone). */
-  return entries.join("\n");
+  /* A light dashed rule between entries so consecutive updates don't run
+     together, especially when one wraps onto several lines - lighter in
+     weight than the heavy "═" divider used elsewhere (Shifts/Call-offs
+     section break) since this is just separating same-type entries, not
+     two different sections. Plain-text only: Jotform renders a widget's
+     answer as plain escaped text with no real HTML/CSS, so true color
+     styling isn't possible here (confirmed 2026-09-13). */
+  var LIGHT_RULE = "╌".repeat(20);
+  return entries.join("\n" + LIGHT_RULE + "\n");
 }
 
 var lastValue = "";
