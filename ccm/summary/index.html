@@ -34,8 +34,10 @@ body{background:var(--surface); color:var(--ink-2);
 .count-v{font-size:22px; font-weight:600; color:var(--ink); margin-top:3px; font-variant-numeric:tabular-nums}
 .count-wide{padding:12px 18px 14px; border-left:none; border-bottom:1px solid var(--line)}
 .count-wide:last-child{border-bottom:none}
-.count-wide .breakdown{margin-top:7px; font-size:12.5px; color:var(--ink-2)}
+.count-wide .breakdown{margin-top:7px; font-size:12.5px; color:var(--ink-2); display:flex; flex-direction:column; gap:3px}
 .count-wide .breakdown .num{font-weight:600; color:var(--ink)}
+.count-wide .breakdown-item{padding-left:2px}
+.count-wide .breakdown-item .arrow{color:var(--ink-3); margin-right:3px}
 .stale{font-size:11px; color:var(--ink-3); padding:8px 18px; border-top:1px solid var(--line); background:var(--sunken)}
 </style>
 </head>
@@ -50,12 +52,18 @@ body{background:var(--surface); color:var(--ink-2);
     <div class="count count-wide">
       <div class="lbl">Total Staff(s)</div>
       <div class="count-v num" id="totalStaff">0</div>
-      <div class="breakdown">CG/IC/PT&nbsp;<span class="num" id="cg">0</span> &middot; LVN/RN&nbsp;<span class="num" id="clin">0</span></div>
+      <div class="breakdown">
+        <div class="breakdown-item"><span class="arrow">&gt;</span>CG/IC/PT:&nbsp;<span class="num" id="cg">0</span></div>
+        <div class="breakdown-item"><span class="arrow">&gt;</span>LVN/RN:&nbsp;<span class="num" id="clin">0</span></div>
+      </div>
     </div>
     <div class="count count-wide">
       <div class="lbl">Total Call-Off/NCNS</div>
       <div class="count-v num" id="totalCallOffs">0</div>
-      <div class="breakdown">Call off &lt;48h&nbsp;<span class="num" id="callOff">0</span> &middot; NCNS&nbsp;<span class="num" id="ncns">0</span></div>
+      <div class="breakdown">
+        <div class="breakdown-item"><span class="arrow">&gt;</span>Call off &lt;48h:&nbsp;<span class="num" id="callOff">0</span></div>
+        <div class="breakdown-item"><span class="arrow">&gt;</span>NCNS:&nbsp;<span class="num" id="ncns">0</span></div>
+      </div>
     </div>
   </div>
   <div class="stale" id="hint">Fill in "Shift, GPM &amp; Call-off Log" below — these numbers update live as you go.</div>
