@@ -12,7 +12,7 @@
 </style>
 </head>
 <body>
-<div id="status">loading…</div>
+<div id="status"></div>
 <script>
 (function(){
 "use strict";
@@ -87,11 +87,7 @@ function fitNow(){
 }
 
 function renderStatus(prev){
-  var lines = [];
-  lines.push("Internal data store — do not edit.");
-  lines.push("sid=" + SID);
-  lines.push("prev value present: " + (prev ? "yes (" + prev.length + " chars)" : "no"));
-  $status.textContent = lines.join("\n");
+  $status.textContent = "";
 }
 
 if(JF){
