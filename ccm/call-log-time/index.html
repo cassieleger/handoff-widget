@@ -71,6 +71,13 @@ var $ = function(id){ return document.getElementById(id); };
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function pad2(v){ v = parseInt(v,10)||0; return (v<10?"0":"")+v; }
 function fmtTime12(h,m,ap){ if(!h || !ap) return ""; return h+":"+pad2(m)+ap; }
+/* Normalizes a typed name to Title Case for the emailed/submitted text only -
+   the on-screen field itself is never rewritten. See gpm-widget's index.html
+   for the same helper/comment. */
+function toTitleCase(s){
+  s = String(s || "");
+  return s.toLowerCase().replace(/(^|[\s'-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
+}
 
 function blank(){ return {id:uid(), hour:"", min:"", ampm:"", dir:"", who:"", name:"", reason:""}; }
 function hasContent(L){ return L.dir || L.who || L.name || L.reason || L.hour; }
@@ -82,9 +89,9 @@ function hasContent(L){ return L.dir || L.who || L.name || L.reason || L.hour; }
    back on "Edit Submission" so entries repopulate here too (previously this
    widget had no restore at all - Call Log always came back blank on edit). */
 var HD_SID = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
-var HD_KEY_CALLLOG = "lcHandoffRowsCallLogCCM";
-var HD_KEY_RESTORE = "lcHandoffRestoreCCM";
-var HD_KEY_HELLO = "lcHandoffStoreHelloCCM";
+var HD_KEY_CALLLOG = "lcHandoffRowsCallLog";
+var HD_KEY_RESTORE = "lcHandoffRestore";
+var HD_KEY_HELLO = "lcHandoffStoreHello";
 var hdRestoredOnce = false;
 function hdIsPristine(){ return !lines.some(hasContent); }
 function hdBroadcastRows(){
@@ -159,15 +166,15 @@ function submittedValue(){
     if(!hasContent(L)) return;
     var timeStr = fmtTime12(L.hour, L.min, L.ampm);
     entries.push("• " + (timeStr ? timeStr + " — " : "") + (L.dir || "Call") + (L.who ? " with " + L.who : "")
-      + (L.name ? " — " + L.name : "")
+      + (L.name ? " — " + toTitleCase(L.name) : "")
       + (L.reason ? "  — " + L.reason : ""));
   });
-  /* Empty on purpose when there are no entries: the email template's Call Log
-     row is a single merged cell with no separate hardcoded label, so an empty
-     string here means the whole row renders blank instead of showing a
-     "Call Log:" heading with nothing under it. */
+  /* No "Call Log:" heading here anymore - the row's own label to the left
+     ("Call Log:") already says that, same treatment as the Updates widget.
+     Empty on purpose when there are no entries: the row renders blank instead
+     of showing an empty value next to a label with nothing under it. */
   if(!entries.length) return "";
-  return ["Call Log:", ""].concat(entries).join("\n");
+  return entries.join("\n");
 }
 
 var lastValue = "";
