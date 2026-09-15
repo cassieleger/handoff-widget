@@ -88,7 +88,20 @@ function node(L){
     var k = inp.getAttribute("data-k");
     inp.id = "f-"+L.id+"-"+k;
     inp.value = L[k] == null ? "" : L[k];
-    var h = function(){ L[k] = inp.value; recalc(); };
+    var h = function(){
+      L[k] = inp.value;
+      /* Picking "Other" means the task isn't about any one person - auto-fill
+         Name with N/A (only if still blank, so it never clobbers something
+         already typed) so the coordinator doesn't think that box is still
+         required. submittedValue() strips a literal "N/A" name back out
+         before it ever reaches the email - see its matching comment. */
+      if(k === "regarding" && inp.value === "Other" && !L.name){
+        L.name = "N/A";
+        var nameInput = document.getElementById("f-"+L.id+"-name");
+        if(nameInput) nameInput.value = "N/A";
+      }
+      recalc();
+    };
     inp.addEventListener("input", h); inp.addEventListener("change", h);
   });
   d.querySelector(".del").addEventListener("click", function(){
@@ -119,7 +132,10 @@ function submittedValue(){
     if(!hasContent(L)) return;
     var bits = [];
     if(L.regarding) bits.push(L.regarding);
-    if(L.name) bits.push(nbsp(toTitleCase(L.name)));
+    /* A literal "N/A" name (auto-filled when Regarding is "Other", or typed
+       manually) is treated the same as blank here - it's a UI convenience,
+       not something that should ever show up in the email. */
+    if(L.name && L.name.trim().toUpperCase() !== "N/A") bits.push(nbsp(toTitleCase(L.name)));
     var head = bits.join(" — ");
     entries.push("• " + (head || "Task") + (L.task ? ":\n" + L.task : ""));
   });
