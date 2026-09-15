@@ -139,7 +139,7 @@ function submittedValue(){
     var head = bits.join(" — ");
     entries.push("• " + (head || "Task") + (L.task ? ":\n" + L.task : ""));
   });
-  if(!entries.length) return "";
+  if(!entries.length) return "No tasks entered.";
   /* No "Task Completion" heading here - the row's own label to the left
      already says that. */
   var widest = 0;
