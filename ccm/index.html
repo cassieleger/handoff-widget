@@ -42,7 +42,8 @@ select{appearance:none;
 /* entry lines (shared look for both shift rows and call-off rows) */
 .line{border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-bottom:10px; background:var(--surface)}
 .line-id{display:grid; gap:9px; padding:11px 12px; align-items:end}
-.line-id.shift-id{grid-template-columns:1fr 1.2fr 1.2fr 165px 34px}
+.line-id.shift-id-1{grid-template-columns:150px 1fr 1.2fr}
+.line-id.shift-id-2{grid-template-columns:1.2fr 165px 34px}
 .line-id.call-id{grid-template-columns:170px 1.2fr 1.2fr 34px}
 .line-fields{display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:12px 10px; padding:2px 12px 14px}
 .line-fields.call-fields{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
@@ -73,8 +74,9 @@ select{appearance:none;
 .add:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
 
 @media (max-width:620px){
-  .line-id.shift-id{grid-template-columns:1fr 34px}
-  .line-id.shift-id .f-shift,.line-id.shift-id .f-cg,.line-id.shift-id .f-disc{grid-column:1 / 2}
+  .line-id.shift-id-1{grid-template-columns:1fr}
+  .line-id.shift-id-2{grid-template-columns:1fr 34px}
+  .line-id.shift-id-2 .f-cg,.line-id.shift-id-2 .f-disc{grid-column:1 / 2}
   .line-id.call-id{grid-template-columns:1fr 34px}
   .line-id.call-id .f-type,.line-id.call-id .f-client,.line-id.call-id .f-emp{grid-column:1 / 2}
   .line-fields.confirm-fields{grid-template-columns:1fr}
@@ -106,6 +108,15 @@ function money(v){ return "$" + v.toLocaleString("en-US",{minimumFractionDigits:
 function fmtHrs(v){ var r = Math.round(v*100)/100; return (r % 1 === 0 ? r.toFixed(0) : String(r)); }
 function pad2(v){ v = parseInt(v,10)||0; return (v<10?"0":"")+v; }
 function fmtTime12(h,m,ap){ if(!h) return ""; return h+":"+pad2(m)+(ap||"AM"); }
+/* Normalizes a typed name to Title Case for the emailed/submitted text only -
+   the on-screen field itself is never rewritten, so this never fights a
+   coordinator mid-typing. Capitalizes after start-of-string, spaces,
+   hyphens and apostrophes (handles "MARY-JANE O'BRIEN" -> "Mary-Jane
+   O'Brien"); doesn't special-case things like "McDonald". */
+function toTitleCase(s){
+  s = String(s || "");
+  return s.toLowerCase().replace(/(^|[\s'-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
+}
 function fmtDate(v){
   if(!v) return "";
   var p = v.split("-"); if(p.length!==3) return v;
@@ -126,9 +137,9 @@ var OT1_MULT = 1.5, OT2_MULT = 2;
    event mechanism the Daily Summary Board widget already uses to read this
    widget's broadcasts. */
 var HD_SID = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
-var HD_KEY_SHIFTS = "lcHandoffRowsShiftsCCM";
-var HD_KEY_RESTORE = "lcHandoffRestoreCCM";
-var HD_KEY_HELLO = "lcHandoffStoreHelloCCM";
+var HD_KEY_SHIFTS = "lcHandoffRowsShifts";
+var HD_KEY_RESTORE = "lcHandoffRestore";
+var HD_KEY_HELLO = "lcHandoffStoreHello";
 var hdRestoredOnce = false;
 function hdIsPristine(){ return !shiftLines.some(shiftStarted) && !callLines.some(callStarted); }
 function hdBroadcastRows(){
@@ -198,7 +209,8 @@ function splitHours(total, rule){
    assumed to mean :00, not "incomplete" (hoursFromParts already treats it
    that way via parseInt(...)||0, so this just matches that in the checklist). */
 function shiftAllFilled(L){
-  return !!(L.shiftDate && L.client && L.cg && L.disc &&
+  return !!(L.multiDate && (L.multiDate === "Yes" ? L.dateNote : L.shiftDate) &&
+    L.client && L.cg && L.disc &&
     L.startHour && L.startAmPm &&
     L.endHour && L.endAmPm &&
     L.otRule && n(L.bill) > 0 && n(L.pay) > 0 &&
@@ -228,7 +240,7 @@ function computeShift(L){
            ready: ready, counted: revenue>0 || labor>0, hours:h, totalHrs:totalHrs,
            useDiff:useDiff, billHrs:billHrs, payHrs:payHrs };
 }
-function blankShift(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:"",
+function blankShift(){ return {id:uid(), shiftDate:"", multiDate:"", dateNote:"", client:"", cg:"", disc:"",
   startHour:"", startMin:"", startAmPm:"", endHour:"", endMin:"", endAmPm:"", otRule:"", bill:"", pay:"", bonus:"",
   baseRate:"", pocUpdated:"", prepCall:"", fsfuTask:"", rnPad:"",
   diffHours:"", billHours:"", payHours:""}; }
@@ -236,7 +248,7 @@ function blankShift(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:""
    whether to show the "missing info" warning (no point nagging on a fresh
    blank row nobody has touched). */
 function shiftStarted(L){
-  return !!(L.shiftDate || L.client || L.cg || L.disc ||
+  return !!(L.shiftDate || L.multiDate || L.dateNote || L.client || L.cg || L.disc ||
     L.startHour || L.startMin || L.startAmPm || L.endHour || L.endMin || L.endAmPm ||
     L.otRule || n(L.bill) || n(L.pay) || n(L.bonus) ||
     L.baseRate || L.prepCall || L.pocUpdated || L.fsfuTask || L.rnPad ||
@@ -249,9 +261,12 @@ function nodeShift(L){
   var hourOpts = '<option value="">Hr</option>'+HOURS12.map(function(h){ return '<option>'+h+'</option>'; }).join("");
   d.innerHTML =
     /* Row 1: identity + when + total hours worked */
-    '<div class="line-id shift-id">'+
-      '<div class="field f-shift"><label>Shift Date</label><input type="date" data-k="shiftDate"></div>'+
+    '<div class="line-id shift-id-1">'+
+      '<div class="field f-multi"><label title="Same Client, Shift &amp; GPM across several dates counts as one staff">Multiple Dates?</label><select data-k="multiDate"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
+      '<div class="field f-shift"><label data-o="dateLbl">Shift Date</label><input type="date" data-k="shiftDate"><input type="text" data-k="dateNote" placeholder="e.g. 09/21-09/23/26" hidden></div>'+
       '<div class="field f-client"><label>Client Name</label><input type="text" data-k="client" placeholder="First & Last Name"></div>'+
+    '</div>'+
+    '<div class="line-id shift-id-2">'+
       '<div class="field f-cg"><label>Employee</label><input type="text" data-k="cg" placeholder="First & Last Name"></div>'+
       '<div class="field f-disc"><label>Employee Type</label><select data-k="disc"><option value="">Please Select</option>'+
         DISC.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
@@ -307,7 +322,8 @@ function nodeShift(L){
     renderShifts();
   });
   shiftOuts[L.id] = { gpm: d.querySelector('[data-o="gpm"]'), hrs: d.querySelector('[data-o="hrs"]'), warn: d.querySelector('[data-o="warn"]'),
-    billBox: d.querySelector('[data-o="billBox"]'), payBox: d.querySelector('[data-o="payBox"]') };
+    billBox: d.querySelector('[data-o="billBox"]'), payBox: d.querySelector('[data-o="payBox"]'),
+    dateLbl: d.querySelector('[data-o="dateLbl"]'), dateInput: d.querySelector('[data-k="shiftDate"]'), noteInput: d.querySelector('[data-k="dateNote"]') };
   return d;
 }
 
@@ -429,7 +445,8 @@ function submittedValue(st, ct){
       if(!c.counted) return;
       shiftNum++;
       var whenParts = [];
-      if(L.shiftDate) whenParts.push(fmtDate(L.shiftDate));
+      if(L.multiDate === "Yes" && L.dateNote) whenParts.push(L.dateNote);
+      else if(L.shiftDate) whenParts.push(fmtDate(L.shiftDate));
       var startStr = fmtTime12(L.startHour, L.startMin, L.startAmPm);
       var endStr = fmtTime12(L.endHour, L.endMin, L.endAmPm);
       if(startStr || endStr) whenParts.push((startStr||"?") + "-" + (endStr||"?"));
@@ -446,7 +463,7 @@ function submittedValue(st, ct){
       /* Row 1: who + when + total hours. Row 2: the money math + GPM.
          Row 3: the confirmation questions. (Client's spec for the email
          text layout — NOT the on-screen widget form, which stays as-is.) */
-      out.push(shiftNum + ". " + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ") | " + whenText + " (" + hoursText + ")");
+      out.push(shiftNum + ". " + (toTitleCase(L.client) || "Client") + " — " + (toTitleCase(L.cg) || "Unassigned") + " (" + L.disc + ") | " + whenText + " (" + hoursText + ")");
       var bonusText = n(L.bonus) > 0 ? " | Bonus " + money(n(L.bonus)) : "";
       var gpmText = c.ready ? pct(c.gpm) : "—";
       if(c.useDiff){
@@ -464,7 +481,7 @@ function submittedValue(st, ct){
            every other row needed, leaving a lot of visibly wasted white
            space next to shorter rows (client flagged this directly). */
         out.push("    OT: " + otText + " | Bill " + money(n(L.bill)) + "/hr | Pay " + money(n(L.pay)) + "/hr" + bonusText + " | GPM " + gpmText);
-        out.push("    Base Rate: " + (L.baseRate || "—") + " | Diff Pay/Bill Hours: " + (L.diffHours || "—") + " | Prep Call: " + (L.prepCall || "—"));
+        out.push("    Base Rate: " + (L.baseRate || "—") + " | Prep Call: " + (L.prepCall || "—"));
         out.push("    POC Updated: " + (L.pocUpdated || "—") + " | FSFU: " + (L.fsfuTask || "—") + " | RN Pad: " + (L.rnPad || "—"));
       }
       out.push("");
@@ -509,7 +526,7 @@ function submittedValue(st, ct){
       /* 2 lines per entry, same condensed spirit as the shift rows above:
          row 1 = type/client/employee + shift, row 2 = called-off time + reason. */
       var shiftPart = L.shiftTime ? " | Shift: " + L.shiftTime : "";
-      out.push(callNum + ". " + (L.type || "Unspecified") + " — " + (L.client || "Client") + " — " + (L.emp || "Unassigned") + shiftPart);
+      out.push(callNum + ". " + (L.type || "Unspecified") + " — " + (toTitleCase(L.client) || "Client") + " — " + (toTitleCase(L.emp) || "Unassigned") + shiftPart);
       var line2 = [
         L.callTime ? "Called off: " + L.callTime : "",
         L.reason ? "Reason: " + L.reason : ""
@@ -548,6 +565,10 @@ function recalc(){
     if(o && o.warn) o.warn.hidden = c.ready || !shiftStarted(L);
     if(o && o.billBox) o.billBox.hidden = (L.diffHours !== "Yes");
     if(o && o.payBox) o.payBox.hidden = (L.diffHours !== "Yes");
+    var multi = L.multiDate === "Yes";
+    if(o && o.dateInput) o.dateInput.hidden = multi;
+    if(o && o.noteInput) o.noteInput.hidden = !multi;
+    if(o && o.dateLbl) o.dateLbl.textContent = multi ? "Dates (note)" : "Shift Date";
   });
 
   callLines.forEach(function(L){
@@ -566,7 +587,7 @@ function recalc(){
    can display them live via the "storage" event. */
 function broadcastSummary(st, ct){
   try {
-    localStorage.setItem("lcHandoffSummaryCCM", JSON.stringify({
+    localStorage.setItem("lcHandoffSummary", JSON.stringify({
       gpm: st.blended,
       cg: st.cg, clin: st.clin, totalStaff: st.cg + st.clin,
       callOff: ct.callOff, ncns: ct.ncns, totalCallOffs: ct.callOff + ct.ncns,
