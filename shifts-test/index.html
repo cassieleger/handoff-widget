@@ -108,6 +108,15 @@ function money(v){ return "$" + v.toLocaleString("en-US",{minimumFractionDigits:
 function fmtHrs(v){ var r = Math.round(v*100)/100; return (r % 1 === 0 ? r.toFixed(0) : String(r)); }
 function pad2(v){ v = parseInt(v,10)||0; return (v<10?"0":"")+v; }
 function fmtTime12(h,m,ap){ if(!h) return ""; return h+":"+pad2(m)+(ap||"AM"); }
+/* Normalizes a typed name to Title Case for the emailed/submitted text only -
+   the on-screen field itself is never rewritten, so this never fights a
+   coordinator mid-typing. Capitalizes after start-of-string, spaces,
+   hyphens and apostrophes (handles "MARY-JANE O'BRIEN" -> "Mary-Jane
+   O'Brien"); doesn't special-case things like "McDonald". */
+function toTitleCase(s){
+  s = String(s || "");
+  return s.toLowerCase().replace(/(^|[\s'-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
+}
 function fmtDate(v){
   if(!v) return "";
   var p = v.split("-"); if(p.length!==3) return v;
@@ -454,7 +463,7 @@ function submittedValue(st, ct){
       /* Row 1: who + when + total hours. Row 2: the money math + GPM.
          Row 3: the confirmation questions. (Client's spec for the email
          text layout — NOT the on-screen widget form, which stays as-is.) */
-      out.push(shiftNum + ". " + (L.client || "Client") + " — " + (L.cg || "Unassigned") + " (" + L.disc + ") | " + whenText + " (" + hoursText + ")");
+      out.push(shiftNum + ". " + (toTitleCase(L.client) || "Client") + " — " + (toTitleCase(L.cg) || "Unassigned") + " (" + L.disc + ") | " + whenText + " (" + hoursText + ")");
       var bonusText = n(L.bonus) > 0 ? " | Bonus " + money(n(L.bonus)) : "";
       var gpmText = c.ready ? pct(c.gpm) : "—";
       if(c.useDiff){
@@ -517,7 +526,7 @@ function submittedValue(st, ct){
       /* 2 lines per entry, same condensed spirit as the shift rows above:
          row 1 = type/client/employee + shift, row 2 = called-off time + reason. */
       var shiftPart = L.shiftTime ? " | Shift: " + L.shiftTime : "";
-      out.push(callNum + ". " + (L.type || "Unspecified") + " — " + (L.client || "Client") + " — " + (L.emp || "Unassigned") + shiftPart);
+      out.push(callNum + ". " + (L.type || "Unspecified") + " — " + (toTitleCase(L.client) || "Client") + " — " + (toTitleCase(L.emp) || "Unassigned") + shiftPart);
       var line2 = [
         L.callTime ? "Called off: " + L.callTime : "",
         L.reason ? "Reason: " + L.reason : ""
