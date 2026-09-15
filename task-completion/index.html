@@ -123,20 +123,18 @@ function submittedValue(){
     var head = bits.join(" — ");
     entries.push("• " + (head || "Task") + (L.task ? ":\n" + L.task : ""));
   });
-  /* No content anywhere -> return "" so the whole email row (a single merged
-     cell with the "Task Completion:" heading baked into THIS text, not a
-     separate hardcoded label column) renders completely blank instead of
-     showing an empty heading with nothing under it - client explicitly
-     wants this section invisible when unused. */
   if(!entries.length) return "";
-  /* Same light dashed divider between entries as the Updates widget, capped
-     at 30 chars so a very long task can never force the table wider. */
+  /* No "Task Completion" heading here - the row's own label to the left
+     ("Task Completion:") already says that, same treatment as Updates. This
+     means the row can no longer fully vanish when empty (client explicitly
+     traded that away for column-2 alignment, matching Call Log) - it'll
+     just show the label with a blank value cell next to it on an unused day. */
   var widest = 0;
   entries.forEach(function(e){ if(e.length > widest) widest = e.length; });
   var MAX_DIVIDER_CHARS = 30;
   var dividerChars = Math.min(MAX_DIVIDER_CHARS, Math.max(15, widest));
   var LIGHT_RULE = "╌".repeat(dividerChars);
-  return "Task Completion:\n\n" + entries.join("\n" + LIGHT_RULE + "\n");
+  return entries.join("\n" + LIGHT_RULE + "\n");
 }
 
 var lastValue = "";
