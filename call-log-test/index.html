@@ -169,12 +169,12 @@ function submittedValue(){
       + (L.name ? " — " + toTitleCase(L.name) : "")
       + (L.reason ? "  — " + L.reason : ""));
   });
-  /* Empty on purpose when there are no entries: the email template's Call Log
-     row is a single merged cell with no separate hardcoded label, so an empty
-     string here means the whole row renders blank instead of showing a
-     "Call Log:" heading with nothing under it. */
+  /* No "Call Log:" heading here anymore - the row's own label to the left
+     ("Call Log:") already says that, same treatment as the Updates widget.
+     Empty on purpose when there are no entries: the row renders blank instead
+     of showing an empty value next to a label with nothing under it. */
   if(!entries.length) return "";
-  return ["Call Log:", ""].concat(entries).join("\n");
+  return entries.join("\n");
 }
 
 var lastValue = "";
