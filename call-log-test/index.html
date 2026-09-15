@@ -170,9 +170,8 @@ function submittedValue(){
       + (L.reason ? "  — " + L.reason : ""));
   });
   /* No "Call Log:" heading here - the row's own label to the left already
-     says that. Empty on purpose when there are no entries: shows a blank
-     value cell next to the always-visible "Call Log:" label. */
-  if(!entries.length) return "";
+     says that. */
+  if(!entries.length) return "No calls logged.";
   return entries.join("\n");
 }
 
