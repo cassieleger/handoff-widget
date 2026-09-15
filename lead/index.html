@@ -507,8 +507,15 @@ function submittedValue(st, ct){
          a future line is unusually text-heavy. This is an approximation, not
          a pixel-perfect match (character widths vary with content) - if it's
          ever visibly off, nudge DIVIDER_RATIO below rather than going back to
-         a hardcoded count. */
-      var DIVIDER_RATIO = 0.58;
+         a hardcoded count.
+         Lowered 0.58 -> 0.45 (2026-09-15): the 0.58 calibration was measured
+         via local Playwright/Chromium rendering, but this project has
+         repeatedly found Outlook's real rendering needs meaningfully more
+         width than local Chromium predicts (see the email-container-width
+         saga) - confirmed wrapping in a real delivered email at 0.58 on the
+         current narrower (860px) email width, so dropping further for a
+         real safety margin rather than re-chasing an exact calibration. */
+      var DIVIDER_RATIO = 0.45;
       var widestLine = 0;
       for(var wi = shiftSectionStart; wi < out.length; wi++){
         if(out[wi].length > widestLine) widestLine = out[wi].length;
