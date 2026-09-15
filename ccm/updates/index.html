@@ -118,6 +118,25 @@ function render(){
    field was converted from Jotform's native Configurable List (which Claude
    Code cannot control the generated markup of at all) to this fully custom
    widget specifically so this trick has something to apply to. */
+/* Normalizes a typed name to Title Case for the emailed/submitted text only -
+   the on-screen field itself is never rewritten. See gpm-widget's index.html
+   for the same helper/comment. Applied before nbsp() so the non-breaking-space
+   swap still happens on the final normalized text. */
+function toTitleCase(s){
+  s = String(s || "");
+  return s.toLowerCase().replace(/(^|[\s'-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
+}
+/* Coordinators often tack a "POA: @HR @Recruiting ..." note onto the end of
+   an Update, typed as one run-on sentence with no line break of their own.
+   Forces a line break right before any "POA" mention (case-insensitive) so
+   it always reads as its own line in the email, regardless of whether the
+   coordinator remembered to press Enter first. Only inserts a break when
+   POA isn't already the very first thing on its own line (won't double up
+   if someone DOES already break it out themselves). */
+function breakBeforePOA(s){
+  s = String(s || "");
+  return s.replace(/([^\n])[ \t]*(POA\b)/gi, function(m, prevChar, poa){ return prevChar + "\n" + poa; });
+}
 function nbsp(s){ return String(s || "").replace(/ /g, " "); }
 
 function submittedValue(){
@@ -126,9 +145,9 @@ function submittedValue(){
     if(!hasContent(L)) return;
     var bits = [];
     if(L.regarding) bits.push(L.regarding);
-    if(L.name) bits.push(nbsp(L.name));
+    if(L.name) bits.push(nbsp(toTitleCase(L.name)));
     var head = bits.join(" — "); /* same dash style as "Client — Employee" in the Shifts/Call-off lines */
-    entries.push("• " + (head || "Update") + (L.update ? ": " + L.update : ""));
+    entries.push("• " + (head || "Update") + (L.update ? ":\n" + breakBeforePOA(L.update) : ""));
   });
   if(!entries.length) return "";
   /* No "Updates" heading line here - the row's own label to the left
@@ -142,13 +161,16 @@ function submittedValue(){
      answer as plain escaped text with no real HTML/CSS, so true color
      styling isn't possible here (confirmed 2026-09-13). */
   /* Scales toward the widest entry's length but capped at 30 - matching
-     the RAW entry length exactly (tried 2026-09-14) is unsafe once the
-     email template's word-break CSS is removed: an entry can be hundreds
-     of characters long, and an unbroken divider that long forces Outlook's
-     table engine to stretch the whole column (or the whole email) wider to
-     fit it, since Outlook expands cells around unbreakable content rather
-     than clipping it. Capping keeps it responsive to short entries while
-     guaranteeing it can never blow out the layout for a long one. */
+     the RAW entry length exactly is unsafe once the email template's
+     word-break CSS is removed: an entry can be hundreds of characters
+     long, and an unbroken divider that long forces Outlook's table engine
+     to stretch the whole column (or the whole email) wider to fit it,
+     since Outlook expands cells around unbreakable content rather than
+     clipping it. Capping keeps it responsive to short entries while
+     guaranteeing it can never blow out the layout for a long one.
+     Confirmed working 2026-09-14 via local Playwright render of the actual
+     delivered email HTML: divider stayed one line, text wrapped normally,
+     860px email-container width unaffected. */
   var widest = 0;
   entries.forEach(function(e){ if(e.length > widest) widest = e.length; });
   var MAX_DIVIDER_CHARS = 30;
@@ -181,9 +203,9 @@ $("add").addEventListener("click", function(){
    before (a native Configurable List gets that for free from Jotform) - now
    that it's a custom widget it needs the same relay the others use. ---- */
 var HD_SID = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
-var HD_KEY_UPDATES = "lcHandoffRowsUpdatesCCM";
-var HD_KEY_RESTORE = "lcHandoffRestoreCCM";
-var HD_KEY_HELLO = "lcHandoffStoreHelloCCM";
+var HD_KEY_UPDATES = "lcHandoffRowsUpdates";
+var HD_KEY_RESTORE = "lcHandoffRestore";
+var HD_KEY_HELLO = "lcHandoffStoreHello";
 var hdRestoredOnce = false;
 function hdIsPristine(){ return !lines.some(hasContent); }
 function hdBroadcastRows(){
