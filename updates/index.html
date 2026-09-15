@@ -118,6 +118,25 @@ function render(){
    field was converted from Jotform's native Configurable List (which Claude
    Code cannot control the generated markup of at all) to this fully custom
    widget specifically so this trick has something to apply to. */
+/* Normalizes a typed name to Title Case for the emailed/submitted text only -
+   the on-screen field itself is never rewritten. See gpm-widget's index.html
+   for the same helper/comment. Applied before nbsp() so the non-breaking-space
+   swap still happens on the final normalized text. */
+function toTitleCase(s){
+  s = String(s || "");
+  return s.toLowerCase().replace(/(^|[\s'-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
+}
+/* Coordinators often tack a "POA: @HR @Recruiting ..." note onto the end of
+   an Update, typed as one run-on sentence with no line break of their own.
+   Forces a line break right before any "POA" mention (case-insensitive) so
+   it always reads as its own line in the email, regardless of whether the
+   coordinator remembered to press Enter first. Only inserts a break when
+   POA isn't already the very first thing on its own line (won't double up
+   if someone DOES already break it out themselves). */
+function breakBeforePOA(s){
+  s = String(s || "");
+  return s.replace(/([^\n])[ \t]*(POA\b)/gi, function(m, prevChar, poa){ return prevChar + "\n" + poa; });
+}
 function nbsp(s){ return String(s || "").replace(/ /g, " "); }
 
 function submittedValue(){
@@ -126,9 +145,9 @@ function submittedValue(){
     if(!hasContent(L)) return;
     var bits = [];
     if(L.regarding) bits.push(L.regarding);
-    if(L.name) bits.push(nbsp(L.name));
+    if(L.name) bits.push(nbsp(toTitleCase(L.name)));
     var head = bits.join(" — "); /* same dash style as "Client — Employee" in the Shifts/Call-off lines */
-    entries.push("• " + (head || "Update") + (L.update ? ": " + L.update : ""));
+    entries.push("• " + (head || "Update") + (L.update ? ":\n" + breakBeforePOA(L.update) : ""));
   });
   if(!entries.length) return "";
   /* No "Updates" heading line here - the row's own label to the left
