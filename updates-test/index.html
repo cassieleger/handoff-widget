@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Updates — Jotform widget</title>
+<script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Work+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --surface:#FFFFFF; --surface-2:#EFE9E0; --sunken:#F7F3ED;
+  --ink:#122834; --ink-2:#414651; --ink-3:#79716B;
+  --line:#E3DBD0; --line-2:#D3C9BB;
+  --accent:#4A7272; --accent-soft:#E4EBE8;
+  --gold:#B07C23; --gold-soft:#F8EEDC;
+  --red:#96382F; --red-soft:#F4E1DD;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--surface); color:var(--ink-2);
+  font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif; font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; padding:2px}
+label,.lbl{font-size:10px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3)}
+input,select,textarea{font-family:inherit; font-size:14.5px; color:var(--ink); background:var(--surface);
+  border:1px solid var(--line-2); border-radius:4px; padding:8px 10px; width:100%; min-width:0}
+textarea{resize:vertical; min-height:38px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+select{appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:calc(100% - 16px) calc(50% + 1px), calc(100% - 11px) calc(50% + 1px);
+  background-size:5px 5px,5px 5px; background-repeat:no-repeat; padding-right:30px}
+
+.line{border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-bottom:10px; background:var(--surface)}
+.line-id{display:grid; grid-template-columns:170px 1.2fr 34px; gap:9px; padding:11px 12px; align-items:end}
+.line-fields{display:grid; grid-template-columns:1fr; gap:12px 10px; padding:2px 12px 14px}
+.field{display:flex; flex-direction:column; gap:5px; min-width:0}
+#restoreNote{display:flex; align-items:center; gap:7px; background:var(--gold-soft); color:var(--gold);
+  font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:4px; margin-bottom:14px}
+#restoreNote[hidden]{display:none}
+.del{background:transparent; border:1px solid var(--line-2); color:var(--ink-3); border-radius:4px;
+  height:36px; width:34px; cursor:pointer; font-size:16px; line-height:1; font-family:inherit}
+.del:hover{border-color:var(--red); color:var(--red); background:var(--red-soft)}
+.add{width:100%; background:transparent; border:1px dashed var(--line-2); color:var(--ink-2);
+  border-radius:4px; padding:10px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit}
+.add:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+
+@media (max-width:560px){
+  .line-id{grid-template-columns:1fr 34px}
+  .line-id .f-regarding,.line-id .f-name{grid-column:1 / 2}
+}
+</style>
+</head>
+<body>
+
+<div id="restoreNote" hidden>&#9888; Restored from this submission.</div>
+<div id="lines"></div>
+<button type="button" class="add" id="add">+ Add Update</button>
+
+<script>
+(function(){
+"use strict";
+var REGARDING = ["Client","CG","IC","LVN","PT","RN"];
+var lines = [];
+var $ = function(id){ return document.getElementById(id); };
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+function blank(){ return {id:uid(), regarding:"", name:"", update:""}; }
+function hasContent(L){ return !!(L.regarding || L.name || L.update); }
+
+function node(L){
+  var d = document.createElement("div");
+  d.className = "line";
+  d.innerHTML =
+    '<div class="line-id">'+
+      '<div class="field f-regarding"><label>Regarding</label><select data-k="regarding"><option value="">Please Select</option>'+
+        REGARDING.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
+      '<div class="field f-name"><label>Name</label><input type="text" data-k="name" placeholder="Name"></div>'+
+      '<button type="button" class="del" aria-label="Remove update">&times;</button>'+
+    '</div>'+
+    '<div class="line-fields">'+
+      '<div class="field"><label>Update</label><textarea data-k="update" rows="2" placeholder="Update"></textarea></div>'+
+    '</div>';
+
+  d.querySelectorAll("[data-k]").forEach(function(inp){
+    var k = inp.getAttribute("data-k");
+    inp.id = "f-"+L.id+"-"+k;
+    inp.value = L[k] == null ? "" : L[k];
+    var h = function(){ L[k] = inp.value; recalc(); };
+    inp.addEventListener("input", h); inp.addEventListener("change", h);
+  });
+  d.querySelector(".del").addEventListener("click", function(){
+    lines = lines.filter(function(x){ return x.id !== L.id; });
+    if(!lines.length) lines.push(blank());
+    render();
+  });
+  return d;
+}
+
+function render(){
+  var host = $("lines"); host.textContent = "";
+  lines.forEach(function(L){ host.appendChild(node(L)); });
+  recalc();
+}
+
+/* Non-breaking spaces inside Name only (never inside Update) so a two-word
+   name like "Evelyn Sholl" can never wrap mid-name in the email regardless
+   of how narrow its table column ends up being next to a long Update cell -
+   this is a plain Unicode character property of the submitted text, so
+   unlike a CSS rule it survives no matter what the delivery pipeline strips.
+   Confirmed necessary and sufficient by direct inbox testing (2026-09-13):
+   an outer <style> nth-child(2) nowrap rule never survived delivery at all
+   (Microsoft 365/Outlook strips <style> blocks from external HTML mail as
+   part of its Safe Links sanitization), and even a plain CSS word-break
+   fallback on the surrounding cell made things WORSE (it forced the whole
+   native Configurable List's generated inner table to collapse to a sliver,
+   shattering "Regarding"/"Name" into single letters per line) - so this
+   field was converted from Jotform's native Configurable List (which Claude
+   Code cannot control the generated markup of at all) to this fully custom
+   widget specifically so this trick has something to apply to. */
+function nbsp(s){ return String(s || "").replace(/ /g, " "); }
+
+function submittedValue(){
+  var entries = [];
+  lines.forEach(function(L){
+    if(!hasContent(L)) return;
+    var bits = [];
+    if(L.regarding) bits.push(L.regarding);
+    if(L.name) bits.push(nbsp(L.name));
+    var head = bits.join(" — "); /* same dash style as "Client — Employee" in the Shifts/Call-off lines */
+    entries.push("• " + (head || "Update") + (L.update ? ":\n" + L.update : ""));
+  });
+  if(!entries.length) return "";
+  /* No "Updates" heading line here - the row's own label to the left
+     ("Updates:") already says that, so a repeated heading inside the value
+     itself was pure clutter (client explicitly asked for it gone). */
+  /* A light dashed rule between entries so consecutive updates don't run
+     together, especially when one wraps onto several lines - lighter in
+     weight than the heavy "═" divider used elsewhere (Shifts/Call-offs
+     section break) since this is just separating same-type entries, not
+     two different sections. Plain-text only: Jotform renders a widget's
+     answer as plain escaped text with no real HTML/CSS, so true color
+     styling isn't possible here (confirmed 2026-09-13). */
+  /* Scales toward the widest entry's length but capped at 30 - matching
+     the RAW entry length exactly is unsafe once the email template's
+     word-break CSS is removed: an entry can be hundreds of characters
+     long, and an unbroken divider that long forces Outlook's table engine
+     to stretch the whole column (or the whole email) wider to fit it,
+     since Outlook expands cells around unbreakable content rather than
+     clipping it. Capping keeps it responsive to short entries while
+     guaranteeing it can never blow out the layout for a long one.
+     Confirmed working 2026-09-14 via local Playwright render of the actual
+     delivered email HTML: divider stayed one line, text wrapped normally,
+     860px email-container width unaffected. */
+  var widest = 0;
+  entries.forEach(function(e){ if(e.length > widest) widest = e.length; });
+  var MAX_DIVIDER_CHARS = 30;
+  var dividerChars = Math.min(MAX_DIVIDER_CHARS, Math.max(15, widest));
+  var LIGHT_RULE = "╌".repeat(dividerChars);
+  return entries.join("\n" + LIGHT_RULE + "\n");
+}
+
+var lastValue = "";
+function recalc(){
+  lastValue = submittedValue();
+  hdBroadcastRows();
+  sync();
+}
+
+$("add").addEventListener("click", function(){
+  var L = blank();
+  lines.push(L);
+  $("lines").appendChild(node(L));
+  recalc();
+  var f = document.getElementById("f-"+L.id+"-regarding");
+  if(f) f.focus();
+});
+
+/* ---- Cross-iframe relay to the "handoffData" carrier widget - same
+   mechanism as the Shifts and Call Log widgets (see their matching
+   comments): broadcasts this widget's rows so handoffData can hold them as
+   part of ITS OWN answer (kept out of the email entirely), and restores
+   them back here on "Edit Submission". This field never had restore-on-edit
+   before (a native Configurable List gets that for free from Jotform) - now
+   that it's a custom widget it needs the same relay the others use. ---- */
+var HD_SID = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+var HD_KEY_UPDATES = "lcHandoffRowsUpdates";
+var HD_KEY_RESTORE = "lcHandoffRestore";
+var HD_KEY_HELLO = "lcHandoffStoreHello";
+var hdRestoredOnce = false;
+function hdIsPristine(){ return !lines.some(hasContent); }
+function hdBroadcastRows(){
+  try {
+    localStorage.setItem(HD_KEY_UPDATES, JSON.stringify({ v:1, sid:HD_SID, ts:Date.now(), lines: lines }));
+  } catch(e){ /* storage may be unavailable (private mode, blocked) - non-fatal */ }
+}
+function hdApplyRestore(data){
+  if(hdRestoredOnce || !hdIsPristine() || !data) return;
+  var raw = Array.isArray(data.updatesLines) ? data.updatesLines : [];
+  if(!raw.length) return;
+  hdRestoredOnce = true;
+  lines = raw.map(function(L){ return Object.assign(blank(), L, { id: (L && L.id) || uid() }); });
+  if(!lines.length) lines = [blank()];
+  render();
+  var note = $("restoreNote");
+  if(note){
+    note.textContent = "⚠ Restored " + lines.length + (lines.length===1?" update":" updates") + " from this submission.";
+    note.hidden = false;
+  }
+}
+
+/* ---- Jotform bridge (absent when the file is opened on its own) ---- */
+var JF = window.JFCustomWidget;
+var lastHeight = 0;
+var jfReady = false;
+function fitNow(){
+  if(!jfReady || !JF || !JF.requestFrameResize) return;
+  var h = Math.ceil(document.body.scrollHeight) + 8;
+  if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
+}
+var fitTimer = null;
+function fit(){
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(fitNow, 250);
+}
+var syncTimer = null;
+function sync(){
+  fit();
+  if(!jfReady || !JF || !JF.sendData) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(function(){ JF.sendData({value: lastValue}); }, 250);
+}
+
+lines = [blank()];
+render();
+
+window.addEventListener("storage", function(e){
+  if(!e || !e.newValue) return;
+  if(e.key === HD_KEY_HELLO){
+    hdBroadcastRows();
+  } else if(e.key === HD_KEY_RESTORE){
+    var data = null;
+    try { data = JSON.parse(e.newValue); } catch(err){ data = null; }
+    if(data && data.ts && (Date.now() - data.ts) < 10000) hdApplyRestore(data);
+  }
+});
+(function(){
+  var raw = null;
+  try { raw = localStorage.getItem(HD_KEY_RESTORE); } catch(e){}
+  if(!raw) return;
+  var data = null;
+  try { data = JSON.parse(raw); } catch(e){ data = null; }
+  if(data && data.ts && (Date.now() - data.ts) < 10000) hdApplyRestore(data);
+})();
+
+/* CRITICAL: subscribe to "ready" first, "submit" nested inside it - see the
+   Shifts widget's matching comment for why (2026-09-13 investigation into
+   submit never firing when structured any other way). */
+if(JF){
+  JF.subscribe("ready", function(){
+    jfReady = true;
+    fitNow();
+    JF.subscribe("submit", function(){
+      JF.sendSubmit({ valid: true, value: lastValue });
+    });
+  });
+}
+window.addEventListener("resize", fit);
+})();
+</script>
+</body>
+</html>
