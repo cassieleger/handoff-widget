@@ -140,17 +140,14 @@ function submittedValue(){
     entries.push("• " + (head || "Task") + (L.task ? ":\n" + L.task : ""));
   });
   if(!entries.length) return "";
-  /* "Task Completion:" heading embedded in the value itself (2026-09-15):
-     back to a single merged cell with no separate label column so the whole
-     row can vanish entirely on a day nothing was entered - matches Call Log
-     and Updates, all three now consistent on "hidden when empty" over
-     column-2 alignment. */
+  /* No "Task Completion" heading here - the row's own label to the left
+     already says that. */
   var widest = 0;
   entries.forEach(function(e){ if(e.length > widest) widest = e.length; });
   var MAX_DIVIDER_CHARS = 30;
   var dividerChars = Math.min(MAX_DIVIDER_CHARS, Math.max(15, widest));
   var LIGHT_RULE = "╌".repeat(dividerChars);
-  return "Task Completion:\n\n" + entries.join("\n" + LIGHT_RULE + "\n");
+  return entries.join("\n" + LIGHT_RULE + "\n");
 }
 
 var lastValue = "";
