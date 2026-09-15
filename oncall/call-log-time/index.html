@@ -165,9 +165,12 @@ function submittedValue(){
   lines.forEach(function(L){
     if(!hasContent(L)) return;
     var timeStr = fmtTime12(L.hour, L.min, L.ampm);
-    entries.push("• " + (timeStr ? timeStr + " — " : "") + (L.dir || "Call") + (L.who ? " with " + L.who : "")
-      + (L.name ? " — " + toTitleCase(L.name) : "")
-      + (L.reason ? "  — " + L.reason : ""));
+    var head = (timeStr ? timeStr + " — " : "") + (L.dir || "Call") + (L.who ? " with " + L.who : "")
+      + (L.name ? " — " + toTitleCase(L.name) : "");
+    /* Reason moves to its own line underneath the header (2026-09-15),
+       matching the Updates widget's layout - same idea, restated here since
+       this widget builds its head/detail split slightly differently. */
+    entries.push("• " + head + (L.reason ? ":\n" + L.reason : ""));
   });
   /* No "Call Log:" heading here - the row's own label to the left already
      says that. */
