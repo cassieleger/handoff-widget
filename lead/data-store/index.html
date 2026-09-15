@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -33,12 +33,14 @@ var SID = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
 var KEY_SHIFTS = "lcHandoffRowsShiftsLead";
 var KEY_CALLLOG = "lcHandoffRowsCallLogLead";
 var KEY_UPDATES = "lcHandoffRowsUpdatesLead";
+var KEY_TASKS = "lcHandoffRowsTasksLead";
 var KEY_RESTORE = "lcHandoffRestoreLead";
 var KEY_HELLO = "lcHandoffStoreHelloLead";
 
 var latestShifts = null;   /* {v,sid,ts,shiftLines,callLines} from the Shifts widget, only via live event */
 var latestCallLog = null;  /* {v,sid,ts,lines} from the Call Log widget, only via live event */
 var latestUpdates = null;  /* {v,sid,ts,lines} from the Updates widget, only via live event */
+var latestTasks = null;    /* {v,sid,ts,lines} from the Task Completion widget, only via live event */
 
 function readJSON(raw){
   if(!raw) return null;
@@ -51,12 +53,13 @@ function combinedValue(){
     shiftLines: (latestShifts && latestShifts.shiftLines) || [],
     callLines: (latestShifts && latestShifts.callLines) || [],
     callLogLines: (latestCallLog && latestCallLog.lines) || [],
-    updatesLines: (latestUpdates && latestUpdates.lines) || []
+    updatesLines: (latestUpdates && latestUpdates.lines) || [],
+    taskLines: (latestTasks && latestTasks.lines) || []
   };
   return DATA_START + JSON.stringify(payload) + DATA_END;
 }
 
-/* Deliberately NEVER reads KEY_SHIFTS/KEY_CALLLOG directly at load — only a
+/* Deliberately NEVER reads KEY_SHIFTS/KEY_CALLLOG directly at load â€” only a
    live "storage" event counts. A direct read here could pick up a stale
    leftover from a previous day/session if one of those widgets' iframes
    never actually loads this time (lazy-loading, a blocked iframe, etc.),
@@ -69,6 +72,7 @@ window.addEventListener("storage", function(e){
   if(e.key === KEY_SHIFTS){ var v = readJSON(e.newValue); if(v) latestShifts = v; }
   else if(e.key === KEY_CALLLOG){ var v2 = readJSON(e.newValue); if(v2) latestCallLog = v2; }
   else if(e.key === KEY_UPDATES){ var v3 = readJSON(e.newValue); if(v3) latestUpdates = v3; }
+  else if(e.key === KEY_TASKS){ var v4 = readJSON(e.newValue); if(v4) latestTasks = v4; }
 });
 
 function sayHello(){
@@ -114,7 +118,8 @@ if(JF){
           shiftLines: restoreData.shiftLines || [],
           callLines: restoreData.callLines || [],
           callLogLines: restoreData.callLogLines || [],
-          updatesLines: restoreData.updatesLines || []
+          updatesLines: restoreData.updatesLines || [],
+          taskLines: restoreData.taskLines || []
         }));
       } else {
         /* Fresh submission - explicitly remove any stale leftover restore
