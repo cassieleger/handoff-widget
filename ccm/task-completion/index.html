@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Task Completion — Jotform widget</title>
+<title>Task Completion â€” Jotform widget</title>
 <script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Work+Sans:wght@400;500;600&display=swap">
@@ -136,21 +136,21 @@ function submittedValue(){
        manually) is treated the same as blank here - it's a UI convenience,
        not something that should ever show up in the email. */
     if(L.name && L.name.trim().toUpperCase() !== "N/A") bits.push(nbsp(toTitleCase(L.name)));
-    var head = bits.join(" — ");
-    entries.push("• " + (head || "Task") + (L.task ? ":\n" + L.task : ""));
+    var head = bits.join(" â€” ");
+    entries.push("â€¢ " + (head || "Task") + (L.task ? ":\n" + L.task : ""));
   });
   if(!entries.length) return "";
-  /* No "Task Completion" heading here - the row's own label to the left
-     ("Task Completion:") already says that, same treatment as Updates. This
-     means the row can no longer fully vanish when empty (client explicitly
-     traded that away for column-2 alignment, matching Call Log) - it'll
-     just show the label with a blank value cell next to it on an unused day. */
+  /* "Task Completion:" heading embedded in the value itself (2026-09-15):
+     back to a single merged cell with no separate label column so the whole
+     row can vanish entirely on a day nothing was entered - matches Call Log
+     and Updates, all three now consistent on "hidden when empty" over
+     column-2 alignment. */
   var widest = 0;
   entries.forEach(function(e){ if(e.length > widest) widest = e.length; });
   var MAX_DIVIDER_CHARS = 30;
   var dividerChars = Math.min(MAX_DIVIDER_CHARS, Math.max(15, widest));
-  var LIGHT_RULE = "╌".repeat(dividerChars);
-  return entries.join("\n" + LIGHT_RULE + "\n");
+  var LIGHT_RULE = "â•Œ".repeat(dividerChars);
+  return "Task Completion:\n\n" + entries.join("\n" + LIGHT_RULE + "\n");
 }
 
 var lastValue = "";
@@ -172,9 +172,9 @@ $("add").addEventListener("click", function(){
 /* ---- Cross-iframe relay to the "handoffData" carrier widget - same
    mechanism as the other widgets (see their matching comments). ---- */
 var HD_SID = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
-var HD_KEY_TASKS = "lcHandoffRowsTasks";
-var HD_KEY_RESTORE = "lcHandoffRestore";
-var HD_KEY_HELLO = "lcHandoffStoreHello";
+var HD_KEY_TASKS = "lcHandoffRowsTasksCCM";
+var HD_KEY_RESTORE = "lcHandoffRestoreCCM";
+var HD_KEY_HELLO = "lcHandoffStoreHelloCCM";
 var hdRestoredOnce = false;
 function hdIsPristine(){ return !lines.some(hasContent); }
 function hdBroadcastRows(){
@@ -192,7 +192,7 @@ function hdApplyRestore(data){
   render();
   var note = $("restoreNote");
   if(note){
-    note.textContent = "⚠ Restored " + lines.length + (lines.length===1?" task":" tasks") + " from this submission.";
+    note.textContent = "âš  Restored " + lines.length + (lines.length===1?" task":" tasks") + " from this submission.";
     note.hidden = false;
   }
 }
