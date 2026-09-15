@@ -26,9 +26,14 @@ input,select,textarea{font-family:inherit; font-size:14.5px; color:var(--ink); b
   border:1px solid var(--line-2); border-radius:4px; padding:8px 10px; width:100%; min-width:0}
 textarea{resize:vertical; min-height:38px}
 input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+select{appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:calc(100% - 16px) calc(50% + 1px), calc(100% - 11px) calc(50% + 1px);
+  background-size:5px 5px,5px 5px; background-repeat:no-repeat; padding-right:30px}
 
 .line{border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-bottom:10px; background:var(--surface)}
-.line-id{display:grid; grid-template-columns:1fr 34px; gap:9px; padding:11px 12px; align-items:end}
+.line-id{display:grid; grid-template-columns:170px 1.2fr 34px; gap:9px; padding:11px 12px; align-items:end}
+.line-fields{display:grid; grid-template-columns:1fr; gap:12px 10px; padding:2px 12px 14px}
 .field{display:flex; flex-direction:column; gap:5px; min-width:0}
 #restoreNote{display:flex; align-items:center; gap:7px; background:var(--gold-soft); color:var(--gold);
   font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:4px; margin-bottom:14px}
@@ -39,6 +44,11 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .add{width:100%; background:transparent; border:1px dashed var(--line-2); color:var(--ink-2);
   border-radius:4px; padding:10px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit}
 .add:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+
+@media (max-width:560px){
+  .line-id{grid-template-columns:1fr 34px}
+  .line-id .f-regarding,.line-id .f-name{grid-column:1 / 2}
+}
 </style>
 </head>
 <body>
@@ -50,20 +60,28 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 <script>
 (function(){
 "use strict";
+/* "Other" added for a task that doesn't pertain to any one person/role -
+   the only difference from the Updates widget's REGARDING list. */
+var REGARDING = ["Client","CG","IC","LVN","PT","RN","Other"];
 var lines = [];
 var $ = function(id){ return document.getElementById(id); };
 function uid(){ return Math.random().toString(36).slice(2,9); }
 
-function blank(){ return {id:uid(), task:""}; }
-function hasContent(L){ return !!(L.task && L.task.trim()); }
+function blank(){ return {id:uid(), regarding:"", name:"", task:""}; }
+function hasContent(L){ return !!(L.regarding || L.name || L.task); }
 
 function node(L){
   var d = document.createElement("div");
   d.className = "line";
   d.innerHTML =
     '<div class="line-id">'+
-      '<div class="field f-task"><label>Task</label><textarea data-k="task" rows="2" placeholder="Task"></textarea></div>'+
+      '<div class="field f-regarding"><label>Regarding</label><select data-k="regarding"><option value="">Please Select</option>'+
+        REGARDING.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
+      '<div class="field f-name"><label>Name</label><input type="text" data-k="name" placeholder="Name"></div>'+
       '<button type="button" class="del" aria-label="Remove task">&times;</button>'+
+    '</div>'+
+    '<div class="line-fields">'+
+      '<div class="field"><label>Task</label><textarea data-k="task" rows="2" placeholder="Task"></textarea></div>'+
     '</div>';
 
   d.querySelectorAll("[data-k]").forEach(function(inp){
@@ -87,22 +105,32 @@ function render(){
   recalc();
 }
 
+/* Non-breaking spaces inside Name only, and Title Case normalization - same
+   helpers/reasoning as the Updates widget (see its matching comments). */
+function nbsp(s){ return String(s || "").replace(/ /g, " "); }
+function toTitleCase(s){
+  s = String(s || "");
+  return s.toLowerCase().replace(/(^|[\s'-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
+}
+
 function submittedValue(){
   var entries = [];
   lines.forEach(function(L){
     if(!hasContent(L)) return;
-    entries.push("• " + L.task.trim());
+    var bits = [];
+    if(L.regarding) bits.push(L.regarding);
+    if(L.name) bits.push(nbsp(toTitleCase(L.name)));
+    var head = bits.join(" — ");
+    entries.push("• " + (head || "Task") + (L.task ? ":\n" + L.task : ""));
   });
   /* No content anywhere -> return "" so the whole email row (a single merged
      cell with the "Task Completion:" heading baked into THIS text, not a
      separate hardcoded label column) renders completely blank instead of
      showing an empty heading with nothing under it - client explicitly
-     wants this section invisible when unused, same as the original Call Log
-     design before it got its own always-visible label column. */
+     wants this section invisible when unused. */
   if(!entries.length) return "";
   /* Same light dashed divider between entries as the Updates widget, capped
-     at 30 chars so a very long task can never force the table wider - see
-     that widget's matching comment for the full reasoning. */
+     at 30 chars so a very long task can never force the table wider. */
   var widest = 0;
   entries.forEach(function(e){ if(e.length > widest) widest = e.length; });
   var MAX_DIVIDER_CHARS = 30;
@@ -123,7 +151,7 @@ $("add").addEventListener("click", function(){
   lines.push(L);
   $("lines").appendChild(node(L));
   recalc();
-  var f = document.getElementById("f-"+L.id+"-task");
+  var f = document.getElementById("f-"+L.id+"-regarding");
   if(f) f.focus();
 });
 
