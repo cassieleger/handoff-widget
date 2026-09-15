@@ -149,7 +149,7 @@ function submittedValue(){
     var head = bits.join(" — "); /* same dash style as "Client — Employee" in the Shifts/Call-off lines */
     entries.push("• " + (head || "Update") + (L.update ? ":\n" + breakBeforePOA(L.update) : ""));
   });
-  if(!entries.length) return "";
+  if(!entries.length) return "No updates entered.";
   /* No "Updates" heading line here - the row's own label to the left
      ("Updates:") already says that, so a repeated heading inside the value
      itself would be pure clutter. */
