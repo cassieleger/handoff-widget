@@ -150,9 +150,11 @@ function submittedValue(){
     entries.push("• " + (head || "Update") + (L.update ? ":\n" + breakBeforePOA(L.update) : ""));
   });
   if(!entries.length) return "";
-  /* No "Updates" heading line here - the row's own label to the left
-     ("Updates:") already says that, so a repeated heading inside the value
-     itself was pure clutter (client explicitly asked for it gone). */
+  /* "Updates:" heading embedded in the value itself (2026-09-15): the email
+     row went back to a single merged cell with no separate label column so
+     the whole row can vanish entirely on a day nothing was entered - a
+     label column can't be conditionally hidden by Jotform's static
+     template, so this embedded heading is what carries that instead. */
   /* A light dashed rule between entries so consecutive updates don't run
      together, especially when one wraps onto several lines - lighter in
      weight than the heavy "═" divider used elsewhere (Shifts/Call-offs
@@ -176,7 +178,7 @@ function submittedValue(){
   var MAX_DIVIDER_CHARS = 30;
   var dividerChars = Math.min(MAX_DIVIDER_CHARS, Math.max(15, widest));
   var LIGHT_RULE = "╌".repeat(dividerChars);
-  return entries.join("\n" + LIGHT_RULE + "\n");
+  return "Updates:\n\n" + entries.join("\n" + LIGHT_RULE + "\n");
 }
 
 var lastValue = "";
