@@ -137,9 +137,9 @@ var OT1_MULT = 1.5, OT2_MULT = 2;
    event mechanism the Daily Summary Board widget already uses to read this
    widget's broadcasts. */
 var HD_SID = "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
-var HD_KEY_SHIFTS = "lcHandoffRowsShifts";
-var HD_KEY_RESTORE = "lcHandoffRestore";
-var HD_KEY_HELLO = "lcHandoffStoreHello";
+var HD_KEY_SHIFTS = "lcHandoffRowsShiftsOncall";
+var HD_KEY_RESTORE = "lcHandoffRestoreOncall";
+var HD_KEY_HELLO = "lcHandoffStoreHelloOncall";
 var hdRestoredOnce = false;
 function hdIsPristine(){ return !shiftLines.some(shiftStarted) && !callLines.some(callStarted); }
 function hdBroadcastRows(){
@@ -587,7 +587,7 @@ function recalc(){
    can display them live via the "storage" event. */
 function broadcastSummary(st, ct){
   try {
-    localStorage.setItem("lcHandoffSummary", JSON.stringify({
+    localStorage.setItem("lcHandoffSummaryOncall", JSON.stringify({
       gpm: st.blended,
       cg: st.cg, clin: st.clin, totalStaff: st.cg + st.clin,
       callOff: ct.callOff, ncns: ct.ncns, totalCallOffs: ct.callOff + ct.ncns,
