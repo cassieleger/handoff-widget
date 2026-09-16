@@ -105,15 +105,17 @@ function render(){
 /* Builds a always-non-empty summary string for the submitted value, so this
    read-only display field's row never gets hidden from the notification
    email by Jotform's "hide empty fields" setting, even on a 0-shift day.
-   Condensed to one line (2026-09-16, client's explicit ask) so the numbers
-   are readable at a glance in the Jotform submissions table without the
-   multi-line block this used to be. */
+   Condensed to one line per group (2026-09-16, client's explicit ask) so the
+   numbers are readable at a glance in the Jotform submissions table without
+   the multi-line block this used to be — Call-offs moved to its own line
+   underneath GPM/Staff (still one line itself), per follow-up ask same day. */
 function submitText(){
-  return "GPM " + $("gpm").textContent +
+  var line1 = "GPM " + $("gpm").textContent +
     " | Staff " + $("totalStaff").textContent +
-    " (CG/IC/PT " + $("cg").textContent + ", LVN/RN " + $("clin").textContent + ")" +
-    " | Call-offs " + $("totalCallOffs").textContent +
+    " (CG/IC/PT " + $("cg").textContent + ", LVN/RN " + $("clin").textContent + ")";
+  var line2 = "Call-offs " + $("totalCallOffs").textContent +
     " (<48h " + $("callOff").textContent + ", NCNS " + $("ncns").textContent + ")";
+  return line1 + "\n" + line2;
 }
 
 /* "storage" fires in other same-origin windows/iframes when localStorage changes elsewhere. */
