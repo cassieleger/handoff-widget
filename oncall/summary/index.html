@@ -1,4 +1,4 @@
-﻿﻿<!doctype html>
+﻿﻿﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -125,23 +125,20 @@ function render(){
 
 /* Builds a always-non-empty summary string for the submitted value, so this
    read-only display field's row never gets hidden from the notification
-   email by Jotform's "hide empty fields" setting, even on a 0-shift day. */
+   email by Jotform's "hide empty fields" setting, even on a 0-shift day.
+   Condensed to one line per group, GPM / Staff(s) / Call off(s) / Calls,
+   matching the same treatment applied to the other 3 Daily Summary Board
+   widgets across the handoff forms (2026-09-16/17) — this variant keeps its
+   own extra Calls line since it's the only one that tracks call volume. */
 function submitText(){
-  return [
-    "Personal daily GPM: " + $("gpm").textContent,
-    "",
-    "Total Staff(s): " + $("totalStaff").textContent,
-    "    > CG/IC/PT: " + $("cg").textContent,
-    "    > LVN/RN: " + $("clin").textContent,
-    "",
-    "Total Call-Off/NCNS: " + $("totalCallOffs").textContent,
-    "    > Call off <48h: " + $("callOff").textContent,
-    "    > NCNS: " + $("ncns").textContent,
-    "",
-    "Total Calls: " + $("totalCalls").textContent,
-    "    > Inbound: " + $("inboundCalls").textContent,
-    "    > Outbound: " + $("outboundCalls").textContent
-  ].join("\n");
+  var line1 = "GPM " + $("gpm").textContent;
+  var line2 = "Staff(s): " + $("totalStaff").textContent +
+    " (CG/IC/PT " + $("cg").textContent + ", LVN/RN " + $("clin").textContent + ")";
+  var line3 = "Call off(s): " + $("totalCallOffs").textContent +
+    " (<48h " + $("callOff").textContent + ", NCNS " + $("ncns").textContent + ")";
+  var line4 = "Calls: " + $("totalCalls").textContent +
+    " (Inbound " + $("inboundCalls").textContent + ", Outbound " + $("outboundCalls").textContent + ")";
+  return line1 + "\n" + line2 + "\n" + line3 + "\n" + line4;
 }
 
 /* "storage" fires in other same-origin windows/iframes when localStorage changes elsewhere. */
@@ -186,5 +183,6 @@ window.addEventListener("resize", fit);
 </script>
 </body>
 </html>
+
 
 
