@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -38,6 +38,9 @@ select{appearance:none;
 #restoreNote{display:flex; align-items:center; gap:7px; background:var(--gold-soft); color:var(--gold);
   font-size:12.5px; font-weight:600; padding:9px 12px; border-radius:4px; margin-bottom:14px}
 #restoreNote[hidden]{display:none}
+.name-warn{display:flex; align-items:flex-start; gap:6px; background:var(--gold-soft); color:var(--gold);
+  font-size:11.5px; font-weight:600; padding:6px 8px; border-radius:4px; margin-top:2px; line-height:1.35}
+.name-warn[hidden]{display:none}
 .del{background:transparent; border:1px solid var(--line-2); color:var(--ink-3); border-radius:4px;
   height:36px; width:34px; cursor:pointer; font-size:16px; line-height:1; font-family:inherit}
 .del:hover{border-color:var(--red); color:var(--red); background:var(--red-soft)}
@@ -68,6 +71,20 @@ function uid(){ return Math.random().toString(36).slice(2,9); }
 function blank(){ return {id:uid(), regarding:"", name:"", update:""}; }
 function hasContent(L){ return !!(L.regarding || L.name || L.update); }
 
+/* A real name is never anywhere close to this long - this exists to catch
+   the specific mistake seen in production (2026-09-17): a coordinator
+   pasted an entire previous update's paragraph into the Name box instead
+   of the Update box below it. Deliberately a soft nudge, not a hard block
+   or silent truncation/rewrite - this project's established pattern
+   (see the shift/call-off "Missing info" banner) is to flag and let the
+   coordinator fix it themselves, never to lose or mangle what they typed. */
+var NAME_WARN_LEN = 50;
+function toggleNameWarning(d, L){
+  var warn = d.querySelector("[data-name-warn]");
+  if(!warn) return;
+  warn.hidden = !(L.name && L.name.length > NAME_WARN_LEN);
+}
+
 function node(L){
   var d = document.createElement("div");
   d.className = "line";
@@ -75,7 +92,9 @@ function node(L){
     '<div class="line-id">'+
       '<div class="field f-regarding"><label>Regarding</label><select data-k="regarding"><option value="">Please Select</option>'+
         REGARDING.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
-      '<div class="field f-name"><label>Name</label><input type="text" data-k="name" placeholder="Name"></div>'+
+      '<div class="field f-name"><label>Name</label><input type="text" data-k="name" placeholder="Name">'+
+        '<div class="name-warn" data-name-warn hidden>&#9888; That looks long for a Name - check it wasn\'t meant for the Update box below.</div>'+
+      '</div>'+
       '<button type="button" class="del" aria-label="Remove update">&times;</button>'+
     '</div>'+
     '<div class="line-fields">'+
@@ -86,7 +105,7 @@ function node(L){
     var k = inp.getAttribute("data-k");
     inp.id = "f-"+L.id+"-"+k;
     inp.value = L[k] == null ? "" : L[k];
-    var h = function(){ L[k] = inp.value; recalc(); };
+    var h = function(){ L[k] = inp.value; if(k === "name") toggleNameWarning(d, L); recalc(); };
     inp.addEventListener("input", h); inp.addEventListener("change", h);
   });
   d.querySelector(".del").addEventListener("click", function(){
@@ -94,6 +113,7 @@ function node(L){
     if(!lines.length) lines.push(blank());
     render();
   });
+  toggleNameWarning(d, L); /* covers a row already long on render, e.g. after Edit-Submission restore */
   return d;
 }
 
