@@ -107,15 +107,15 @@ function render(){
    email by Jotform's "hide empty fields" setting, even on a 0-shift day.
    Condensed to one line per group (2026-09-16, client's explicit ask) so the
    numbers are readable at a glance in the Jotform submissions table without
-   the multi-line block this used to be — Call-offs moved to its own line
-   underneath GPM/Staff (still one line itself), per follow-up ask same day. */
+   the multi-line block this used to be — split into 3 separate lines, GPM /
+   Staff / Call-offs in that order, per follow-up asks same day. */
 function submitText(){
-  var line1 = "GPM " + $("gpm").textContent +
-    " | Staff " + $("totalStaff").textContent +
+  var line1 = "GPM " + $("gpm").textContent;
+  var line2 = "Staff " + $("totalStaff").textContent +
     " (CG/IC/PT " + $("cg").textContent + ", LVN/RN " + $("clin").textContent + ")";
-  var line2 = "Call-offs " + $("totalCallOffs").textContent +
+  var line3 = "Call-offs " + $("totalCallOffs").textContent +
     " (<48h " + $("callOff").textContent + ", NCNS " + $("ncns").textContent + ")";
-  return line1 + "\n" + line2;
+  return line1 + "\n" + line2 + "\n" + line3;
 }
 
 /* "storage" fires in other same-origin windows/iframes when localStorage changes elsewhere. */
