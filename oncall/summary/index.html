@@ -131,6 +131,7 @@ function render(){
    widgets across the handoff forms (2026-09-16/17) — this variant keeps its
    own extra Calls line since it's the only one that tracks call volume. */
 function submitText(){
+  var SPACER = "\n \n";
   var line1 = "GPM " + $("gpm").textContent;
   var line2 = "Staff(s): " + $("totalStaff").textContent +
     " (CG/IC/PT " + $("cg").textContent + ", LVN/RN " + $("clin").textContent + ")";
@@ -138,7 +139,7 @@ function submitText(){
     " (<48h " + $("callOff").textContent + ", NCNS " + $("ncns").textContent + ")";
   var line4 = "Calls: " + $("totalCalls").textContent +
     " (Inbound " + $("inboundCalls").textContent + ", Outbound " + $("outboundCalls").textContent + ")";
-  return line1 + "\n" + line2 + "\n" + line3 + "\n" + line4;
+  return line1 + SPACER + line2 + SPACER + line3 + SPACER + line4;
 }
 
 /* "storage" fires in other same-origin windows/iframes when localStorage changes elsewhere. */
