@@ -111,9 +111,9 @@ function render(){
    Staff / Call-offs in that order, per follow-up asks same day. */
 function submitText(){
   var line1 = "GPM " + $("gpm").textContent;
-  var line2 = "Staff " + $("totalStaff").textContent +
+  var line2 = "Staff(s) " + $("totalStaff").textContent +
     " (CG/IC/PT " + $("cg").textContent + ", LVN/RN " + $("clin").textContent + ")";
-  var line3 = "Call-offs " + $("totalCallOffs").textContent +
+  var line3 = "Call off(s) " + $("totalCallOffs").textContent +
     " (<48h " + $("callOff").textContent + ", NCNS " + $("ncns").textContent + ")";
   return line1 + "\n" + line2 + "\n" + line3;
 }
