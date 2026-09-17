@@ -1,4 +1,4 @@
-﻿<!doctype html>
+﻿﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -178,9 +178,30 @@ function submittedValue(){
   return entries.join("\n");
 }
 
+/* Broadcasts live inbound/outbound counts via localStorage so the separate
+   top-of-form Daily Summary Board widget (same GitHub Pages origin,
+   different Jotform field/iframe) can display them live via the "storage"
+   event - same mechanism as the Shifts widget's broadcastSummary(). This
+   was missing entirely before, which is why the summary board always showed
+   "Calls: 0" no matter how many calls were logged. */
+function broadcastCallCounts(){
+  var inbound = 0, outbound = 0;
+  lines.forEach(function(L){
+    if(!hasContent(L)) return;
+    if(L.dir === "Inbound") inbound++;
+    else if(L.dir === "Outbound") outbound++;
+  });
+  try {
+    localStorage.setItem("lcHandoffCallCountsOncall", JSON.stringify({
+      total: inbound + outbound, inbound: inbound, outbound: outbound, ts: Date.now()
+    }));
+  } catch(e){ /* storage may be unavailable (private mode, blocked) - non-fatal */ }
+}
+
 var lastValue = "";
 function recalc(){
   lastValue = submittedValue();
+  broadcastCallCounts();
   hdBroadcastRows();
   sync();
 }
