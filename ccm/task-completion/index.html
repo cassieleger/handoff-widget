@@ -121,6 +121,16 @@ function render(){
 /* Non-breaking spaces inside Name only, and Title Case normalization - same
    helpers/reasoning as the Updates widget (see its matching comments). */
 function nbsp(s){ return String(s || "").replace(/ /g, " "); }
+/* Capitalizes the first letter of a typed note and of every new line in it
+   (emailed/submitted text only - the box on screen is never rewritten), so
+   "clock out" -> "Clock out". Skips leading spaces/bullets/quotes to find the
+   first letter, and leaves a line alone if it starts with a link. */
+function capLines(s){
+  return String(s || "").replace(/(^|\n)([ \t\u00A0\-*\u2022(\"'\u201C\u2018]*)([a-z])(\S*)/g, function(m, nl, lead, ch, rest){
+    if(/^(ttps?:|ww\.)/i.test(rest) || rest.indexOf("://") !== -1) return m;
+    return nl + lead + ch.toUpperCase() + rest;
+  });
+}
 function toTitleCase(s){
   /* Trim + collapse stray spaces (a trailing space was showing up as
      "Deidra Stitch :" in the email), and treat an opening quote as a word
@@ -140,7 +150,7 @@ function submittedValue(){
        not something that should ever show up in the email. */
     if(L.name && L.name.trim().toUpperCase() !== "N/A") bits.push(nbsp(toTitleCase(L.name)));
     var head = bits.join(" — ");
-    entries.push("• " + (head || "Task") + (L.task ? ":\n" + L.task : ""));
+    entries.push("• " + (head || "Task") + (L.task ? ":\n" + capLines(L.task) : ""));
   });
   if(!entries.length) return "No tasks entered.";
   /* No "Task Completion" heading here - the row's own label to the left
