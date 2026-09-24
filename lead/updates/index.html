@@ -122,6 +122,16 @@ function render(){
    the on-screen field itself is never rewritten. See gpm-widget's index.html
    for the same helper/comment. Applied before nbsp() so the non-breaking-space
    swap still happens on the final normalized text. */
+/* Capitalizes the first letter of a typed note and of every new line in it
+   (emailed/submitted text only - the box on screen is never rewritten), so
+   "clock out" -> "Clock out". Skips leading spaces/bullets/quotes to find the
+   first letter, and leaves a line alone if it starts with a link. */
+function capLines(s){
+  return String(s || "").replace(/(^|\n)([ \t\u00A0\-*\u2022(\"'\u201C\u2018]*)([a-z])(\S*)/g, function(m, nl, lead, ch, rest){
+    if(/^(ttps?:|ww\.)/i.test(rest) || rest.indexOf("://") !== -1) return m;
+    return nl + lead + ch.toUpperCase() + rest;
+  });
+}
 function toTitleCase(s){
   /* Trim + collapse stray spaces (a trailing space was showing up as
      "Deidra Stitch :" in the email), and treat an opening quote as a word
@@ -150,7 +160,7 @@ function submittedValue(){
     if(L.regarding) bits.push(L.regarding);
     if(L.name) bits.push(nbsp(toTitleCase(L.name)));
     var head = bits.join(" — "); /* same dash style as "Client — Employee" in the Shifts/Call-off lines */
-    entries.push("• " + (head || "Update") + (L.update ? ":\n" + breakBeforePOA(L.update) : ""));
+    entries.push("• " + (head || "Update") + (L.update ? ":\n" + capLines(breakBeforePOA(L.update)) : ""));
   });
   if(!entries.length) return "No updates entered.";
   /* No "Updates" heading line here - the row's own label to the left
