@@ -143,8 +143,11 @@ function render(){
    for the same helper/comment. Applied before nbsp() so the non-breaking-space
    swap still happens on the final normalized text. */
 function toTitleCase(s){
-  s = String(s || "");
-  return s.toLowerCase().replace(/(^|[\s'-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
+  /* Trim + collapse stray spaces (a trailing space was showing up as
+     "Deidra Stitch :" in the email), and treat an opening quote as a word
+     start so a nickname in quotes is capitalized too: "manny" -> "Manny". */
+  s = String(s || "").trim().replace(/\s+/g, " ");
+  return s.toLowerCase().replace(/(^|[\s'"\u201C-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
 }
 /* Coordinators often tack a "POA: @HR @Recruiting ..." note onto the end of
    an Update, typed as one run-on sentence with no line break of their own.
