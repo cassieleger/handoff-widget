@@ -114,8 +114,11 @@ function fmtTime12(h,m,ap){ if(!h) return ""; return h+":"+pad2(m)+(ap||"AM"); }
    hyphens and apostrophes (handles "MARY-JANE O'BRIEN" -> "Mary-Jane
    O'Brien"); doesn't special-case things like "McDonald". */
 function toTitleCase(s){
-  s = String(s || "");
-  return s.toLowerCase().replace(/(^|[\s'-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
+  /* Trim + collapse stray spaces (a trailing space was showing up as
+     "Deidra Stitch :" in the email), and treat an opening quote as a word
+     start so a nickname in quotes is capitalized too: "manny" -> "Manny". */
+  s = String(s || "").trim().replace(/\s+/g, " ");
+  return s.toLowerCase().replace(/(^|[\s'"\u201C-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
 }
 function fmtDate(v){
   if(!v) return "";
