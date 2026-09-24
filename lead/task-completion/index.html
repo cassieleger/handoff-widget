@@ -122,8 +122,11 @@ function render(){
    helpers/reasoning as the Updates widget (see its matching comments). */
 function nbsp(s){ return String(s || "").replace(/ /g, " "); }
 function toTitleCase(s){
-  s = String(s || "");
-  return s.toLowerCase().replace(/(^|[\s'-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
+  /* Trim + collapse stray spaces (a trailing space was showing up as
+     "Deidra Stitch :" in the email), and treat an opening quote as a word
+     start so a nickname in quotes is capitalized too: "manny" -> "Manny". */
+  s = String(s || "").trim().replace(/\s+/g, " ");
+  return s.toLowerCase().replace(/(^|[\s'"\u201C-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
 }
 
 function submittedValue(){
