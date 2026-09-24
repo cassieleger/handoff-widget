@@ -75,8 +75,11 @@ function fmtTime12(h,m,ap){ if(!h || !ap) return ""; return h+":"+pad2(m)+ap; }
    the on-screen field itself is never rewritten. See gpm-widget's index.html
    for the same helper/comment. */
 function toTitleCase(s){
-  s = String(s || "");
-  return s.toLowerCase().replace(/(^|[\s'-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
+  /* Trim + collapse stray spaces (a trailing space was showing up as
+     "Deidra Stitch :" in the email), and treat an opening quote as a word
+     start so a nickname in quotes is capitalized too: "manny" -> "Manny". */
+  s = String(s || "").trim().replace(/\s+/g, " ");
+  return s.toLowerCase().replace(/(^|[\s'"\u201C-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
 }
 
 function blank(){ return {id:uid(), hour:"", min:"", ampm:"", dir:"", who:"", name:"", reason:""}; }
@@ -167,10 +170,10 @@ function submittedValue(){
     var timeStr = fmtTime12(L.hour, L.min, L.ampm);
     var head = (timeStr ? timeStr + " — " : "") + (L.dir || "Call") + (L.who ? " with " + L.who : "")
       + (L.name ? " — " + toTitleCase(L.name) : "");
-    /* Reason moves to its own line underneath the header (2026-09-15),
-       matching the Updates widget's layout - same idea, restated here since
-       this widget builds its head/detail split slightly differently. */
-    entries.push("• " + head + (L.reason ? ":\n" + L.reason : ""));
+    /* Reason stays on the same line as the header (2026-09-24) so each call
+       reads as one line in the email: "• 7:11PM — Inbound with CG — Name: reason".
+       (Was moved underneath on 2026-09-15; Updates still uses that layout.) */
+    entries.push("• " + head + (L.reason ? ": " + L.reason : ""));
   });
   /* No "Call Log:" heading here - the row's own label to the left already
      says that. */
