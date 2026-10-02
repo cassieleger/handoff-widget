@@ -163,10 +163,33 @@ function sync(){
   clearTimeout(syncTimer);
   syncTimer = setTimeout(function(){ JF.sendData({value: lastValue}); }, 250);
 }
+/* Edit Submission: Jotform hands back this field's saved answer in the "ready"
+   data. The answer is the plain-text list built in recalc(), so the rows are
+   rebuilt by parsing its "1. Client — Employee (CG) | 10/2/2026" lines. */
+function decode(s){
+  var t = document.createElement("textarea");
+  t.innerHTML = String(s || "").replace(/<br\s*\/?>/gi, "\n");
+  return t.value;
+}
+function isoDate(m, d, y){ return y + "-" + pad(m) + "-" + pad(d); }
+function pad(v){ v = parseInt(v,10)||0; return (v<10?"0":"")+v; }
+function restoreFrom(value){
+  var rows = [];
+  decode(value).split(/\r?\n/).forEach(function(line){
+    var m = line.trim().match(/^\d+\.\s+(.+?)\s+—\s+(.+?)\s+\((CG|IC|LVN|PT|RN)\)(?:\s*\|\s*(\d{1,2})\/(\d{1,2})\/(\d{4}))?$/);
+    if(!m) return;
+    var L = blank();
+    L.client = m[1]; L.cg = m[2]; L.disc = m[3];
+    if(m[4]) L.shiftDate = isoDate(m[4], m[5], m[6]);
+    rows.push(L);
+  });
+  if(rows.length){ lines = rows; render(); }
+}
 /* Subscribe to "ready" first and to "submit" inside it (see the main widget's notes). */
 if(JF){
-  JF.subscribe("ready", function(){
+  JF.subscribe("ready", function(readyData){
     jfReady = true;
+    if(readyData && readyData.value) restoreFrom(readyData.value);
     fitNow();
     JF.subscribe("submit", function(){
       JF.sendSubmit({ valid: true, value: lastValue });
