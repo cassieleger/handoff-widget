@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shifts Staffed (Temporary) — Jotform widget</title>
+<script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600&display=swap">
+<style>
+/* Single light theme on purpose: this renders inside a Jotform page.
+   Cut-down, staffing-only version of the Shift Ledger widget for the
+   "Temporary-" handoff forms: no times, OT, bill, pay, bonus, GPM or call-offs. */
+:root{
+  --surface:#FFFFFF; --sunken:#F7F3ED;
+  --ink:#122834; --ink-2:#414651; --ink-3:#79716B;
+  --line:#E3DBD0; --line-2:#D3C9BB;
+  --accent:#4A7272; --accent-soft:#E4EBE8;
+  --red:#96382F; --red-soft:#F4E1DD;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--surface); color:var(--ink-2);
+  font-family:"Work Sans", ui-sans-serif, system-ui, sans-serif; font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; padding:2px}
+.num{font-variant-numeric:tabular-nums lining-nums}
+label,.lbl{font-size:10px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3)}
+input,select{font-family:inherit; font-size:14.5px; color:var(--ink); background:var(--surface);
+  border:1px solid var(--line-2); border-radius:4px; padding:8px 10px; width:100%; min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+select{appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:calc(100% - 16px) calc(50% + 1px), calc(100% - 11px) calc(50% + 1px);
+  background-size:5px 5px,5px 5px; background-repeat:no-repeat; padding-right:30px}
+
+.totals{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px}
+.tot{flex:1 1 140px; background:var(--sunken); border:1px solid var(--line); border-radius:4px; padding:10px 12px}
+.tot .v{font-size:22px; font-weight:600; color:var(--ink); line-height:1.2}
+.tot.main .v{color:var(--accent)}
+
+.line{display:grid; grid-template-columns:150px 1fr 1fr 130px 34px; gap:9px; align-items:end;
+  border:1px solid var(--line); border-radius:4px; padding:11px 12px; margin-bottom:10px; background:var(--surface)}
+.field{display:flex; flex-direction:column; gap:5px; min-width:0}
+.del{background:transparent; border:1px solid var(--line-2); color:var(--ink-3); border-radius:4px;
+  height:38px; width:34px; cursor:pointer; font-size:16px; line-height:1; font-family:inherit}
+.del:hover{border-color:var(--red); color:var(--red); background:var(--red-soft)}
+.add{width:100%; background:transparent; border:1px dashed var(--line-2); color:var(--ink-2);
+  border-radius:4px; padding:10px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit}
+.add:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+
+@media (max-width:620px){
+  .line{grid-template-columns:1fr 34px}
+  .line .field{grid-column:1 / 2}
+  .line .del{grid-column:2; grid-row:1}
+}
+</style>
+</head>
+<body>
+
+<div class="totals">
+  <div class="tot main"><div class="lbl">Total Staff(s)</div><div class="v num" id="totalStaff">0</div></div>
+  <div class="tot"><div class="lbl">CG/IC/PT</div><div class="v num" id="cg">0</div></div>
+  <div class="tot"><div class="lbl">LVN/RN</div><div class="v num" id="clin">0</div></div>
+</div>
+
+<div id="shiftLines"></div>
+<button type="button" class="add" id="addShift">+ Add shift</button>
+
+<script>
+(function(){
+"use strict";
+
+var $ = function(id){ return document.getElementById(id); };
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function toTitleCase(s){
+  s = String(s || "").trim().replace(/\s+/g, " ");
+  return s.toLowerCase().replace(/(^|[\s'"“-])([a-z])/g, function(m, sep, ch){ return sep + ch.toUpperCase(); });
+}
+function fmtDate(v){
+  if(!v) return "";
+  var p = v.split("-"); if(p.length!==3) return v;
+  return (+p[1]) + "/" + (+p[2]) + "/" + p[0];
+}
+
+var DISC = ["CG","IC","LVN","PT","RN"], CLINICAL = {LVN:1, RN:1};
+var lines = [];
+
+function blank(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:""}; }
+/* A row only counts toward the totals once Client, Employee and Type are filled. */
+function counted(L){ return !!(L.client.trim() && L.cg.trim() && L.disc); }
+
+function node(L){
+  var d = document.createElement("div");
+  d.className = "line";
+  d.innerHTML =
+    '<div class="field"><label>Shift Date</label><input type="date" data-k="shiftDate"></div>'+
+    '<div class="field"><label>Client Name</label><input type="text" data-k="client" placeholder="First & Last Name"></div>'+
+    '<div class="field"><label>Employee</label><input type="text" data-k="cg" placeholder="First & Last Name"></div>'+
+    '<div class="field"><label>Employee Type</label><select data-k="disc"><option value="">Please Select</option>'+
+      DISC.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
+    '<button type="button" class="del" aria-label="Remove shift">&times;</button>';
+  d.querySelectorAll("[data-k]").forEach(function(inp){
+    var k = inp.getAttribute("data-k");
+    inp.id = "f-"+L.id+"-"+k;
+    inp.value = L[k] || "";
+    var h = function(){ L[k] = inp.value; recalc(); };
+    inp.addEventListener("input", h); inp.addEventListener("change", h);
+  });
+  d.querySelector(".del").addEventListener("click", function(){
+    lines = lines.filter(function(x){ return x.id !== L.id; });
+    if(!lines.length) lines.push(blank());
+    render();
+  });
+  return d;
+}
+
+function render(){
+  var host = $("shiftLines"); host.textContent = "";
+  lines.forEach(function(L){ host.appendChild(node(L)); });
+  recalc();
+}
+
+var lastValue = "";
+function recalc(){
+  var cg = 0, clin = 0, out = [], num = 0;
+  lines.forEach(function(L){
+    if(!counted(L)) return;
+    if(CLINICAL[L.disc]) clin++; else cg++;
+    num++;
+    out.push(num + ". " + toTitleCase(L.client) + " — " + toTitleCase(L.cg) + " (" + L.disc + ")" +
+      (L.shiftDate ? " | " + fmtDate(L.shiftDate) : ""));
+  });
+  $("totalStaff").textContent = String(cg + clin);
+  $("cg").textContent = String(cg);
+  $("clin").textContent = String(clin);
+  /* Plain text only: Jotform prints a custom widget's answer as escaped text. */
+  var head = "Total Staff(s): " + (cg + clin) + "  (CG/IC/PT: " + cg + " | LVN/RN: " + clin + ")";
+  lastValue = out.length ? head + "\n\n" + out.join("\n") : "No shifts entered.";
+  sync();
+}
+
+$("addShift").addEventListener("click", function(){
+  var L = blank();
+  lines.push(L);
+  $("shiftLines").appendChild(node(L));
+  recalc();
+  var f = document.getElementById("f-"+L.id+"-client");
+  if(f) f.focus();
+});
+
+/* ---- Jotform bridge (absent when the file is opened on its own) ---- */
+var JF = window.JFCustomWidget;
+var jfReady = false, lastHeight = 0, fitTimer = null, syncTimer = null;
+function fitNow(){
+  if(!jfReady || !JF || !JF.requestFrameResize) return;
+  var h = Math.ceil(document.body.scrollHeight) + 8;
+  if(Math.abs(h - lastHeight) > 4){ lastHeight = h; JF.requestFrameResize({height: h}); }
+}
+function fit(){ clearTimeout(fitTimer); fitTimer = setTimeout(fitNow, 250); }
+function sync(){
+  fit();
+  if(!jfReady || !JF || !JF.sendData) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(function(){ JF.sendData({value: lastValue}); }, 250);
+}
+/* Subscribe to "ready" first and to "submit" inside it (see the main widget's notes). */
+if(JF){
+  JF.subscribe("ready", function(){
+    jfReady = true;
+    fitNow();
+    JF.subscribe("submit", function(){
+      JF.sendSubmit({ valid: true, value: lastValue });
+    });
+  });
+}
+lines = [blank()];
+render();
+window.addEventListener("resize", fit);
+})();
+</script>
+</body>
+</html>
