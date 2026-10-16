@@ -38,9 +38,13 @@ select{appearance:none;
 .tot .v{font-size:22px; font-weight:600; color:var(--ink); line-height:1.2}
 .tot.main .v{color:var(--accent)}
 
-.line{display:grid; grid-template-columns:150px 1fr 1fr 130px 34px; gap:9px; align-items:end;
-  border:1px solid var(--line); border-radius:4px; padding:11px 12px; margin-bottom:10px; background:var(--surface)}
+.line{border:1px solid var(--line); border-radius:4px; padding:11px 12px; margin-bottom:10px; background:var(--surface)}
+.line-id{display:grid; gap:9px; align-items:end}
+.line-id + .line-id{margin-top:9px}
+.line-id.id-1{grid-template-columns:150px 1fr 1.2fr}
+.line-id.id-2{grid-template-columns:1.2fr 165px 34px}
 .field{display:flex; flex-direction:column; gap:5px; min-width:0}
+[hidden]{display:none !important}
 .del{background:transparent; border:1px solid var(--line-2); color:var(--ink-3); border-radius:4px;
   height:38px; width:34px; cursor:pointer; font-size:16px; line-height:1; font-family:inherit}
 .del:hover{border-color:var(--red); color:var(--red); background:var(--red-soft)}
@@ -49,9 +53,10 @@ select{appearance:none;
 .add:hover{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
 
 @media (max-width:620px){
-  .line{grid-template-columns:1fr 34px}
-  .line .field{grid-column:1 / 2}
-  .line .del{grid-column:2; grid-row:1}
+  .line-id.id-1{grid-template-columns:1fr}
+  .line-id.id-2{grid-template-columns:1fr 34px}
+  .line-id.id-2 .field{grid-column:1 / 2}
+  .line-id.id-2 .del{grid-column:2; grid-row:1}
 }
 </style>
 </head>
@@ -85,7 +90,13 @@ function fmtDate(v){
 var DISC = ["CG","IC","LVN","PT","RN"], CLINICAL = {LVN:1, RN:1};
 var lines = [];
 
-function blank(){ return {id:uid(), shiftDate:"", client:"", cg:"", disc:""}; }
+function blank(){ return {id:uid(), shiftDate:"", multiDate:"", dateNote:"", client:"", cg:"", disc:""}; }
+/* Same "Multiple Dates?" question as the main Shift Ledger widget: Yes swaps the
+   date picker for a free-text dates note (e.g. 09/21-09/23/26). */
+function whenText(L){
+  if(L.multiDate === "Yes") return L.dateNote.trim();
+  return L.shiftDate ? fmtDate(L.shiftDate) : "";
+}
 /* A row only counts toward the totals once Client, Employee and Type are filled. */
 function counted(L){ return !!(L.client.trim() && L.cg.trim() && L.disc); }
 
@@ -93,19 +104,34 @@ function node(L){
   var d = document.createElement("div");
   d.className = "line";
   d.innerHTML =
-    '<div class="field"><label>Shift Date</label><input type="date" data-k="shiftDate"></div>'+
-    '<div class="field"><label>Client Name</label><input type="text" data-k="client" placeholder="First & Last Name"></div>'+
-    '<div class="field"><label>Employee</label><input type="text" data-k="cg" placeholder="First & Last Name"></div>'+
-    '<div class="field"><label>Employee Type</label><select data-k="disc"><option value="">Please Select</option>'+
-      DISC.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
-    '<button type="button" class="del" aria-label="Remove shift">&times;</button>';
+    '<div class="line-id id-1">'+
+      '<div class="field"><label title="Same Client, Shift &amp; GPM across several dates counts as one staff">Multiple Dates?</label><select data-k="multiDate"><option value="">Please Select</option><option>Yes</option><option>No</option></select></div>'+
+      '<div class="field"><label data-o="dateLbl">Shift Date</label><input type="date" data-k="shiftDate"><input type="text" data-k="dateNote" placeholder="e.g. 09/21-09/23/26" hidden></div>'+
+      '<div class="field"><label>Client Name</label><input type="text" data-k="client" placeholder="First & Last Name"></div>'+
+    '</div>'+
+    '<div class="line-id id-2">'+
+      '<div class="field"><label>Employee</label><input type="text" data-k="cg" placeholder="First & Last Name"></div>'+
+      '<div class="field"><label>Employee Type</label><select data-k="disc"><option value="">Please Select</option>'+
+        DISC.map(function(o){ return '<option>'+o+'</option>'; }).join("")+'</select></div>'+
+      '<button type="button" class="del" aria-label="Remove shift">&times;</button>'+
+    '</div>';
+  var dateLbl = d.querySelector('[data-o="dateLbl"]'),
+      dateInput = d.querySelector('[data-k="shiftDate"]'),
+      noteInput = d.querySelector('[data-k="dateNote"]');
+  function showDate(){
+    var multi = L.multiDate === "Yes";
+    dateInput.hidden = multi;
+    noteInput.hidden = !multi;
+    dateLbl.textContent = multi ? "Dates (note)" : "Shift Date";
+  }
   d.querySelectorAll("[data-k]").forEach(function(inp){
     var k = inp.getAttribute("data-k");
     inp.id = "f-"+L.id+"-"+k;
     inp.value = L[k] || "";
-    var h = function(){ L[k] = inp.value; recalc(); };
+    var h = function(){ L[k] = inp.value; if(k === "multiDate") showDate(); recalc(); };
     inp.addEventListener("input", h); inp.addEventListener("change", h);
   });
+  showDate();
   d.querySelector(".del").addEventListener("click", function(){
     lines = lines.filter(function(x){ return x.id !== L.id; });
     if(!lines.length) lines.push(blank());
@@ -127,8 +153,9 @@ function recalc(){
     if(!counted(L)) return;
     if(CLINICAL[L.disc]) clin++; else cg++;
     num++;
+    var when = whenText(L);
     out.push(num + ". " + toTitleCase(L.client) + " — " + toTitleCase(L.cg) + " (" + L.disc + ")" +
-      (L.shiftDate ? " | " + fmtDate(L.shiftDate) : ""));
+      (when ? " | " + when : ""));
   });
   $("totalStaff").textContent = String(cg + clin);
   $("cg").textContent = String(cg);
@@ -165,7 +192,8 @@ function sync(){
 }
 /* Edit Submission: Jotform hands back this field's saved answer in the "ready"
    data. The answer is the plain-text list built in recalc(), so the rows are
-   rebuilt by parsing its "1. Client — Employee (CG) | 10/2/2026" lines. */
+   rebuilt by parsing its "1. Client — Employee (CG) | 10/2/2026" lines. Anything
+   after the "|" that isn't a single m/d/yyyy date is a Multiple Dates note. */
 function decode(s){
   var t = document.createElement("textarea");
   t.innerHTML = String(s || "").replace(/<br\s*\/?>/gi, "\n");
@@ -176,11 +204,15 @@ function pad(v){ v = parseInt(v,10)||0; return (v<10?"0":"")+v; }
 function restoreFrom(value){
   var rows = [];
   decode(value).split(/\r?\n/).forEach(function(line){
-    var m = line.trim().match(/^\d+\.\s+(.+?)\s+—\s+(.+?)\s+\((CG|IC|LVN|PT|RN)\)(?:\s*\|\s*(\d{1,2})\/(\d{1,2})\/(\d{4}))?$/);
+    var m = line.trim().match(/^\d+\.\s+(.+?)\s+—\s+(.+?)\s+\((CG|IC|LVN|PT|RN)\)(?:\s*\|\s*(.+))?$/);
     if(!m) return;
     var L = blank();
     L.client = m[1]; L.cg = m[2]; L.disc = m[3];
-    if(m[4]) L.shiftDate = isoDate(m[4], m[5], m[6]);
+    if(m[4]){
+      var dm = m[4].trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if(dm){ L.multiDate = "No"; L.shiftDate = isoDate(dm[1], dm[2], dm[3]); }
+      else { L.multiDate = "Yes"; L.dateNote = m[4].trim(); }
+    }
     rows.push(L);
   });
   if(rows.length){ lines = rows; render(); }
