@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exam Timer</title>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body { font-family: Inter, "Segoe UI", Tahoma, Verdana, Arial, sans-serif; text-align: center; }
+  .timer { display: inline-block; margin: 6px auto; padding: 8px 26px 10px; background: #2b2b2b; color: #fff;
+           border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,.25); white-space: nowrap; }
+  .lbl { display: block; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; opacity: .8; }
+  .t { display: block; font-size: 36px; font-weight: 700; letter-spacing: 2px; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .timer.low { background: #b3261e; }
+  .timer.up .t { font-size: 22px; letter-spacing: 0; }
+</style>
+</head>
+<body>
+<div id="timer" class="timer"><span class="lbl">Time remaining</span><span class="t" id="t">--:--:--</span></div>
+<script>
+(function () {
+  // Settings come from the URL: ?h=1&m=30&s=0&id=<formId>
+  var q = new URLSearchParams(location.search);
+  var H = parseInt(q.get('h'), 10) || 0, M = parseInt(q.get('m'), 10) || 0, S = parseInt(q.get('s'), 10) || 0;
+  if (!H && !M && !S) { H = 1; M = 30; }
+  var total = (H * 3600 + M * 60 + S) * 1000;
+  var key = 'lcExamTimer_' + (q.get('id') || 'exam');
+  var box = document.getElementById('timer'), out = document.getElementById('t');
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  // Keep the same deadline across page refreshes. Start a new one if there is none,
+  // or if the old one ended more than 15 minutes ago (a new test taker / retake).
+  var now = Date.now(), dl = 0;
+  try { dl = parseInt(localStorage.getItem(key), 10) || 0; } catch (e) {}
+  if (!dl || dl < now - 15 * 60 * 1000 || dl > now + total) {
+    dl = now + total;
+    try { localStorage.setItem(key, String(dl)); } catch (e) {}
+  }
+
+  var iv;
+  function tick() {
+    var left = Math.max(0, dl - Date.now()), s = Math.ceil(left / 1000);
+    if (left <= 0) {
+      box.className = 'timer low up';
+      out.textContent = "Time's up - please submit now";
+      clearInterval(iv);
+      return;
+    }
+    out.textContent = pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s % 3600 / 60)) + ':' + pad(s % 60);
+    box.className = s <= 300 ? 'timer low' : 'timer';
+  }
+  tick();
+  iv = setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
